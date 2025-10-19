@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { UserPlus, Mail, Lock, User, School, AlertCircle, Check } from 'lucide-react';
@@ -14,7 +14,26 @@ const roles = [
   { id: 'school', label: 'School Admin', icon: School, description: 'School-wide management' },
 ];
 
-export default function RegisterPage() {
+// Loading fallback component
+function RegisterLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-brand flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-2xl">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold font-heading bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
+            Titcha
+          </h1>
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const planFromUrl = searchParams.get('plan') || 'free';
@@ -329,5 +348,14 @@ export default function RegisterPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+// Wrapper component with Suspense boundary
+export default function RegisterPageWrapper() {
+  return (
+    <Suspense fallback={<RegisterLoading />}>
+      <RegisterPage />
+    </Suspense>
   );
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { findUserByEmail } from '@/lib/devdb';
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
