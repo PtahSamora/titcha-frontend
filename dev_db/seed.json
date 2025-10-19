@@ -1,0 +1,52 @@
+{
+  "schools": [
+    {
+      "id": "school-1",
+      "name": "Greenwood High School",
+      "region": "North District",
+      "colors": {
+        "primary": "#10B981",
+        "accent": "#FACC15"
+      }
+    },
+    {
+      "id": "school-2",
+      "name": "Riverside Academy",
+      "region": "South District",
+      "colors": {
+        "primary": "#3B82F6",
+        "accent": "#F59E0B"
+      }
+    }
+  ],
+  "teachers": [
+    {
+      "id": "teacher-1",
+      "schoolId": "school-1",
+      "name": "Ms. Sarah Johnson",
+      "subjects": ["Mathematics", "Physics"]
+    },
+    {
+      "id": "teacher-2",
+      "schoolId": "school-1",
+      "name": "Mr. David Chen",
+      "subjects": ["English", "Literature"]
+    }
+  ],
+  "classes": [
+    {
+      "id": "class-1",
+      "schoolId": "school-1",
+      "grade": "Grade 10",
+      "name": "10A Mathematics",
+      "teacherId": "teacher-1"
+    },
+    {
+      "id": "class-2",
+      "schoolId": "school-1",
+      "grade": "Grade 11",
+      "name": "11B English",
+      "teacherId": "teacher-2"
+    }
+  ]
+}

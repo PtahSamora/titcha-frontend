@@ -1,0 +1,448 @@
+{
+  "users": [
+    {
+      "id": "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+      "role": "student",
+      "email": "test@student.com",
+      "passwordHash": "$2b$10$GJtJvQHIo9kwmUdA8acDY.6/Da7QkAy0gTo4YJWXsDeVE2Fmy/gaS",
+      "displayName": "Test Student",
+      "schoolId": "school-1",
+      "meta": {
+        "grade": "Grade 10",
+        "theme": "student"
+      },
+      "createdAt": "2025-10-18T11:22:43.819Z",
+      "updatedAt": "2025-10-18T11:22:43.819Z"
+    },
+    {
+      "id": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "role": "student",
+      "email": "ssamoraam@gmail.com",
+      "passwordHash": "$2b$10$sOja3pXmOqrz2wunDdJmK.7XAl.7ra3KZhYbzhn5t4wwY4aPunegG",
+      "displayName": "Vuyile Sixaba",
+      "schoolId": "school-1",
+      "meta": {
+        "grade": "Grade 10",
+        "theme": "student"
+      },
+      "createdAt": "2025-10-18T11:35:02.557Z",
+      "updatedAt": "2025-10-18T11:35:02.557Z"
+    },
+    {
+      "id": "b81608e0-454e-4c2a-a75b-7951ac96f509",
+      "role": "parent",
+      "email": "test@gmail.com",
+      "passwordHash": "$2b$10$vGWUDE5ADA54zkgTElIHi.z8N7jpAa1s9pmE8S725LJ2OTtp.41QW",
+      "displayName": "Samora's Team",
+      "meta": {
+        "theme": "parent",
+        "childIds": []
+      },
+      "createdAt": "2025-10-18T11:40:12.463Z",
+      "updatedAt": "2025-10-18T11:40:12.463Z"
+    },
+    {
+      "id": "a564b57e-91e4-432e-932e-f0fbbdf23a37",
+      "role": "student",
+      "email": "testing@gmail.com",
+      "passwordHash": "$2b$10$e6/fZcaQSiVTR2bLIJWd2ufBTmu5XnDk7jxFNwKExHJqrGUL6Lli2",
+      "displayName": "Samora",
+      "schoolId": "school-1",
+      "meta": {
+        "grade": "Grade 10",
+        "theme": "student"
+      },
+      "createdAt": "2025-10-18T16:08:27.516Z",
+      "updatedAt": "2025-10-18T16:08:27.516Z"
+    },
+    {
+      "id": "c929ee61-ade3-484d-b713-0da1436e7f76",
+      "role": "parent",
+      "email": "parent1@gmail.com",
+      "passwordHash": "$2b$10$4K9oyTPya3.bM.PRYAmLZeXkBRCZcpgNVHSmkd3LOSYXVZD0T.71W",
+      "displayName": "Parent Test",
+      "meta": {
+        "theme": "parent",
+        "childIds": []
+      },
+      "createdAt": "2025-10-18T21:31:50.263Z",
+      "updatedAt": "2025-10-18T21:31:50.263Z"
+    },
+    {
+      "id": "7d07ef39-9810-4305-8f49-3bc347be307c",
+      "role": "parent",
+      "email": "parent2@gmail.com",
+      "passwordHash": "$2b$10$yvyGTbCtd5gpr7WUtBXXXu.y3regIhdrO.871wEORfiVQ89QPkB7a",
+      "displayName": "Parent Test2",
+      "meta": {
+        "theme": "parent",
+        "childIds": []
+      },
+      "createdAt": "2025-10-18T22:10:51.628Z",
+      "updatedAt": "2025-10-18T22:10:51.628Z"
+    },
+    {
+      "id": "6c7e7e9f-b127-47d4-b2eb-f93a73c171e7",
+      "role": "parent",
+      "email": "parent3@gmail.com",
+      "passwordHash": "$2b$10$s8/W8XqowiIf40gl.vCsyuIdemDn8TRfLvXSYafJVF/.yAU53eC0y",
+      "displayName": "Parent Test3",
+      "meta": {
+        "theme": "parent",
+        "childIds": []
+      },
+      "createdAt": "2025-10-18T22:35:04.507Z",
+      "updatedAt": "2025-10-18T22:35:04.507Z"
+    },
+    {
+      "id": "53ee4b29-8a94-4974-bfe7-88d32b0564db",
+      "role": "teacher",
+      "email": "teacher@gmail.com",
+      "passwordHash": "$2b$10$yBxduLoVLlr/W5m7XKq6p.PcYM8r8JlOHMlp1mBWbRtyz0EG/dQhK",
+      "displayName": "Teacher Test",
+      "schoolId": "school-1",
+      "meta": {
+        "teacherSubjects": [
+          "General"
+        ],
+        "theme": "teacher"
+      },
+      "createdAt": "2025-10-18T23:45:12.703Z",
+      "updatedAt": "2025-10-18T23:45:12.703Z"
+    }
+  ],
+  "schools": [
+    {
+      "id": "school-1",
+      "name": "Greenwood High School",
+      "region": "North District",
+      "colors": {
+        "primary": "#10B981",
+        "accent": "#FACC15"
+      }
+    },
+    {
+      "id": "school-2",
+      "name": "Riverside Academy",
+      "region": "South District",
+      "colors": {
+        "primary": "#3B82F6",
+        "accent": "#F59E0B"
+      }
+    }
+  ],
+  "classes": [
+    {
+      "id": "class-1",
+      "schoolId": "school-1",
+      "grade": "Grade 10",
+      "name": "10A Mathematics",
+      "teacherId": "teacher-1"
+    },
+    {
+      "id": "class-2",
+      "schoolId": "school-1",
+      "grade": "Grade 11",
+      "name": "11B English",
+      "teacherId": "teacher-2"
+    }
+  ],
+  "teachers": [
+    {
+      "id": "teacher-1",
+      "schoolId": "school-1",
+      "name": "Ms. Sarah Johnson",
+      "subjects": [
+        "Mathematics",
+        "Physics"
+      ]
+    },
+    {
+      "id": "teacher-2",
+      "schoolId": "school-1",
+      "name": "Mr. David Chen",
+      "subjects": [
+        "English",
+        "Literature"
+      ]
+    },
+    {
+      "id": "teacher-95a5346c",
+      "schoolId": "school-1",
+      "name": "Teacher Test",
+      "subjects": [
+        "General"
+      ]
+    }
+  ],
+  "students": [
+    {
+      "id": "student-e8efc66f",
+      "userId": "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+      "schoolId": "school-1",
+      "grade": "Grade 10",
+      "fullName": "Test Student"
+    },
+    {
+      "id": "student-f776ab21",
+      "userId": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "schoolId": "school-1",
+      "grade": "Grade 10",
+      "fullName": "Vuyile Sixaba"
+    },
+    {
+      "id": "student-18d975b1",
+      "userId": "a564b57e-91e4-432e-932e-f0fbbdf23a37",
+      "schoolId": "school-1",
+      "grade": "Grade 10",
+      "fullName": "Samora"
+    }
+  ],
+  "parents": [
+    {
+      "id": "parent-7c7fd3be",
+      "userId": "b81608e0-454e-4c2a-a75b-7951ac96f509",
+      "fullName": "Samora's Team",
+      "childUserIds": []
+    },
+    {
+      "id": "parent-5faccaae",
+      "userId": "c929ee61-ade3-484d-b713-0da1436e7f76",
+      "fullName": "Parent Test",
+      "childUserIds": []
+    },
+    {
+      "id": "parent-51f5f570",
+      "userId": "7d07ef39-9810-4305-8f49-3bc347be307c",
+      "fullName": "Parent Test2",
+      "childUserIds": []
+    },
+    {
+      "id": "parent-2a4f49df",
+      "userId": "6c7e7e9f-b127-47d4-b2eb-f93a73c171e7",
+      "fullName": "Parent Test3",
+      "childUserIds": []
+    }
+  ],
+  "sessions": [],
+  "contactMessages": [],
+  "pendingLinks": [],
+  "homework": [
+    {
+      "id": "hw-1",
+      "studentUserId": "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+      "subject": "Mathematics",
+      "title": "Quadratic Equations Practice",
+      "description": "Complete problems 1-20 from Chapter 5",
+      "dueDate": "2025-10-21T14:55:12.422Z",
+      "status": "pending",
+      "createdAt": "2025-10-18T14:55:12.422Z"
+    },
+    {
+      "id": "hw-2",
+      "studentUserId": "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+      "subject": "Science",
+      "title": "Photosynthesis Lab Report",
+      "description": "Write a lab report on the photosynthesis experiment",
+      "dueDate": "2025-10-25T14:55:12.422Z",
+      "status": "pending",
+      "createdAt": "2025-10-18T14:55:12.422Z"
+    },
+    {
+      "id": "hw-3",
+      "studentUserId": "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+      "subject": "English",
+      "title": "Shakespeare Essay",
+      "description": "Analyze the themes in Romeo and Juliet",
+      "dueDate": "2025-10-16T14:55:12.422Z",
+      "status": "overdue",
+      "createdAt": "2025-10-08T14:55:12.422Z"
+    },
+    {
+      "id": "hw-4",
+      "studentUserId": "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+      "subject": "Mathematics",
+      "title": "Trigonometry Worksheet",
+      "description": "Complete all sine and cosine problems",
+      "dueDate": "2025-10-19T14:55:12.422Z",
+      "status": "pending",
+      "createdAt": "2025-10-18T14:55:12.422Z"
+    }
+  ],
+  "friendships": [
+    {
+      "id": "friend-1760803726112",
+      "aUserId": "a564b57e-91e4-432e-932e-f0fbbdf23a37",
+      "bUserId": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "createdAt": "2025-10-18T16:08:46.112Z"
+    }
+  ],
+  "dms": [
+    {
+      "id": "dm-1760804633640",
+      "roomKey": "1512b1dd-38c3-414c-ab48-dbae7b1a4034|a564b57e-91e4-432e-932e-f0fbbdf23a37",
+      "fromUserId": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "toUserId": "a564b57e-91e4-432e-932e-f0fbbdf23a37",
+      "message": "testing",
+      "createdAt": "2025-10-18T16:23:53.640Z"
+    },
+    {
+      "id": "dm-1760804649423",
+      "roomKey": "1512b1dd-38c3-414c-ab48-dbae7b1a4034|a564b57e-91e4-432e-932e-f0fbbdf23a37",
+      "fromUserId": "a564b57e-91e4-432e-932e-f0fbbdf23a37",
+      "toUserId": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "message": "testing too",
+      "createdAt": "2025-10-18T16:24:09.423Z"
+    }
+  ],
+  "studyRooms": [
+    {
+      "id": "room-1",
+      "name": "Math Study Group",
+      "subject": "Mathematics",
+      "ownerUserId": "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+      "memberUserIds": [
+        "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+        "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+        "a564b57e-91e4-432e-932e-f0fbbdf23a37"
+      ],
+      "inviteCode": "MATH123",
+      "createdAt": "2025-10-18T14:55:12.422Z"
+    },
+    {
+      "id": "room-1760822412068",
+      "name": "Testing",
+      "subject": "Science",
+      "ownerUserId": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "memberUserIds": [
+        "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+        "a564b57e-91e4-432e-932e-f0fbbdf23a37",
+        "b81608e0-454e-4c2a-a75b-7951ac96f509"
+      ],
+      "inviteCode": "XH705F",
+      "createdAt": "2025-10-18T21:20:12.068Z"
+    }
+  ],
+  "roomMessages": [
+    {
+      "id": "msg-1760815072578",
+      "roomId": "room-1",
+      "fromUserId": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "message": "testing",
+      "createdAt": "2025-10-18T19:17:52.578Z"
+    },
+    {
+      "id": "msg-1760816199965",
+      "roomId": "room-1",
+      "fromUserId": "a564b57e-91e4-432e-932e-f0fbbdf23a37",
+      "message": "testing too",
+      "createdAt": "2025-10-18T19:36:39.965Z"
+    },
+    {
+      "id": "msg-1760817113163",
+      "roomId": "room-1",
+      "fromUserId": "system",
+      "message": "🤖 AI: Here's help with your Mathematics question: testing ai\n\nThis is a sample AI resp...",
+      "createdAt": "2025-10-18T19:51:53.163Z"
+    },
+    {
+      "id": "msg-1760819873492",
+      "roomId": "room-1",
+      "fromUserId": "system",
+      "message": "🤖 AI: Here's help with your Mathematics question: testing\n\nThis is a sample AI respons...",
+      "createdAt": "2025-10-18T20:37:53.492Z"
+    }
+  ],
+  "roomSnapshots": [],
+  "continueActivities": [
+    {
+      "id": "act-1",
+      "studentUserId": "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+      "type": "lesson",
+      "subject": "Mathematics",
+      "title": "Quadratic Equations",
+      "progress": 65,
+      "lastAccessed": "2025-10-18T12:55:12.423Z"
+    },
+    {
+      "id": "act-2",
+      "studentUserId": "60bd07bd-5a09-4e41-8b5f-ef53ae60c4f4",
+      "type": "homework",
+      "subject": "Science",
+      "title": "Photosynthesis Lab",
+      "progress": 30,
+      "lastAccessed": "2025-10-17T14:55:12.423Z"
+    }
+  ],
+  "groupChats": [
+    {
+      "id": "group-1760808960034",
+      "name": "testing",
+      "ownerUserId": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "memberUserIds": [
+        "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+        "a564b57e-91e4-432e-932e-f0fbbdf23a37"
+      ],
+      "schoolId": "school-1",
+      "createdAt": "2025-10-18T17:36:00.034Z",
+      "updatedAt": "2025-10-18T17:36:31.461Z"
+    },
+    {
+      "id": "group-1760822411506",
+      "name": "Testing",
+      "ownerUserId": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "memberUserIds": [
+        "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+        "a564b57e-91e4-432e-932e-f0fbbdf23a37"
+      ],
+      "schoolId": "school-1",
+      "createdAt": "2025-10-18T21:20:11.506Z",
+      "updatedAt": "2025-10-18T21:20:11.874Z"
+    }
+  ],
+  "groupMessages": [
+    {
+      "id": "gmsg-1760808986711",
+      "groupId": "group-1760808960034",
+      "fromUserId": "a564b57e-91e4-432e-932e-f0fbbdf23a37",
+      "message": "testing",
+      "createdAt": "2025-10-18T17:36:26.711Z"
+    },
+    {
+      "id": "gmsg-1760808991461",
+      "groupId": "group-1760808960034",
+      "fromUserId": "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+      "message": "testing too",
+      "createdAt": "2025-10-18T17:36:31.461Z"
+    }
+  ],
+  "roomPermissions": [
+    {
+      "roomId": "room-1",
+      "askAiEnabled": true,
+      "memberAskAi": [],
+      "updatedAt": "2025-10-18T19:12:35.957Z"
+    },
+    {
+      "roomId": "room-1760822412068",
+      "askAiEnabled": true,
+      "memberAskAi": [
+        "1512b1dd-38c3-414c-ab48-dbae7b1a4034",
+        "a564b57e-91e4-432e-932e-f0fbbdf23a37"
+      ],
+      "updatedAt": "2025-10-18T21:29:09.976Z"
+    }
+  ],
+  "roomControls": [
+    {
+      "roomId": "room-1",
+      "controllerUserId": null,
+      "updatedAt": "2025-10-18T20:12:29.798Z"
+    },
+    {
+      "roomId": "room-1760822412068",
+      "controllerUserId": null,
+      "updatedAt": "2025-10-18T21:20:20.559Z"
+    }
+  ]
+}
