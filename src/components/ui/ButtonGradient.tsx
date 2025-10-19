@@ -25,7 +25,7 @@ const ButtonGradient = forwardRef<HTMLButtonElement, ButtonGradientProps>(
       lg: 'px-8 py-4 text-lg',
     };
 
-    const { onAnimationStart, onAnimationEnd, ...buttonProps } = props;
+    const { onAnimationStart, onAnimationEnd, onDragStart, onDragEnd, onDrag, ...buttonProps } = props;
 
     return (
       <motion.button

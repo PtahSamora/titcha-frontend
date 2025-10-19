@@ -125,7 +125,7 @@ export default function LearnersPage() {
     console.log('Added new learner:', newLearner);
 
     // Reset form and close modal
-    setFormData({ name: '', grade: '', subjects: '' });
+    setFormData({ name: '', school: '', grade: '', subjects: '' });
     setShowAddModal(false);
   };
 

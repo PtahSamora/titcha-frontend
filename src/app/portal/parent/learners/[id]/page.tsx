@@ -239,12 +239,12 @@ export default function ParentLearnerDetailPage() {
                 <div key={subject}>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="font-medium text-gray-700 capitalize">{subject}</span>
-                    <span className="text-gray-600">{score}%</span>
+                    <span className="text-gray-600">{score as number}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3">
                     <div
                       className="bg-gradient-to-r from-purple-600 to-pink-600 h-3 rounded-full transition-all"
-                      style={{ width: `${score}%` }}
+                      style={{ width: `${score as number}%` }}
                     ></div>
                   </div>
                 </div>

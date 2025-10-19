@@ -64,6 +64,8 @@ export function RoomLayout({
   const [members, setMembers] = useState(
     initialMembers.map((m) => ({
       ...m,
+      email: '', // Email not provided in initial data
+      isOwner: m.role === 'owner',
       hasControl: m.id === initialControl.controllerUserId,
       online: false,
     }))

@@ -10,7 +10,7 @@ let writeQueue = Promise.resolve();
 
 function acquireWriteLock<T>(fn: () => Promise<T>): Promise<T> {
   const task = writeQueue.then(fn);
-  writeQueue = task.catch(() => {});
+  writeQueue = task.then(() => {}, () => {});
   return task;
 }
 

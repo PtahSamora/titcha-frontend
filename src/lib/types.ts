@@ -93,6 +93,8 @@ export interface Homework {
   description?: string;
   dueDate: string;
   status: 'pending' | 'done' | 'overdue';
+  score?: number;
+  completedAt?: string;
   createdAt: string;
 }
 
@@ -155,6 +157,7 @@ export interface ContinueActivity {
   type: 'lesson' | 'practice' | 'homework' | 'room';
   subject?: string;
   title: string;
+  url?: string;
   progress?: number;
   lastAccessed: string;
 }

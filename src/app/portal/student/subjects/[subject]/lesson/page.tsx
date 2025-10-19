@@ -7,7 +7,8 @@ import { Board } from '@/components/lesson/Board';
 import { AIStreamOnBoard } from '@/components/lesson/AIStreamOnBoard';
 import { ToolDock } from '@/components/lesson/ToolDock';
 import { Checkpoint } from '@/components/lesson/Checkpoint';
-import type { ExcalidrawImperativeAPI } from '@/components/lesson/Board';
+// Type for Excalidraw API reference
+type ExcalidrawImperativeAPI = any;
 
 const subjectData: Record<string, { name: string; icon: string; color: string }> = {
   math: { name: 'Mathematics', icon: '📐', color: '#9333EA' },

@@ -192,7 +192,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(
             appState: {
               viewBackgroundColor: themeStyles[theme].canvasBackground,
               gridSize: 20,
-              activeTool: { type: 'selection' },
+              activeTool: { type: 'selection', customType: null, lastActiveTool: null, locked: false } as any,
               viewModeEnabled: !isEditable,
               zenModeEnabled: false,
               gridModeEnabled: true,
@@ -210,8 +210,8 @@ export const Board = forwardRef<BoardHandle, BoardProps>(
               toggleTheme: true,
             },
             tools: {
-              hand: true,
-            },
+              image: false,
+            } as any,
           }}
         />
 
