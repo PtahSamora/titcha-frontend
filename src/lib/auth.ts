@@ -1,9 +1,12 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
+import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { compare } from 'bcrypt';
+import { prisma } from './prisma';
 import { findUserByEmail } from './devdb';
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -17,28 +20,46 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Find user in local file database
-          const user = await findUserByEmail(credentials.email);
+          // Try Prisma database first (if DATABASE_URL is configured)
+          let user = null;
 
-          if (!user) {
+          if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
+            user = await prisma.user.findUnique({
+              where: { email: credentials.email },
+            });
+
+            if (user && user.password) {
+              const isPasswordValid = await compare(credentials.password, user.password);
+              if (isPasswordValid) {
+                return {
+                  id: user.id,
+                  email: user.email || '',
+                  name: user.name || '',
+                  role: user.role,
+                  image: user.image,
+                };
+              }
+            }
+          }
+
+          // Fallback to devdb for development/testing
+          const devUser = await findUserByEmail(credentials.email);
+          if (!devUser) {
             throw new Error('No user found with this email');
           }
 
-          // Verify password
-          const isPasswordValid = await compare(credentials.password, user.passwordHash);
-
+          const isPasswordValid = await compare(credentials.password, devUser.passwordHash);
           if (!isPasswordValid) {
             throw new Error('Invalid password');
           }
 
-          // Return user data for JWT
           return {
-            id: user.id,
-            email: user.email,
-            name: user.displayName,
-            role: user.role,
-            schoolId: user.schoolId,
-            meta: user.meta,
+            id: devUser.id,
+            email: devUser.email,
+            name: devUser.displayName,
+            role: devUser.role,
+            schoolId: devUser.schoolId,
+            meta: devUser.meta,
           };
         } catch (error) {
           console.error('Auth error:', error);
@@ -87,4 +108,11 @@ export function getRoleBasedRedirect(role: string): string {
     admin: '/portal/admin/dashboard',
   };
   return redirects[role] || '/';
+}
+
+// Helper to get session user in server components
+export async function getSessionUser() {
+  const { getServerSession } = await import('next-auth');
+  const session = await getServerSession(authOptions);
+  return session?.user ?? null;
 }
