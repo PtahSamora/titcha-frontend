@@ -21,10 +21,8 @@ export const authOptions: NextAuthOptions = {
 
         try {
           // Try Prisma database first (if DATABASE_URL is configured)
-          let user = null;
-
           if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
-            user = await prisma.user.findUnique({
+            const user = await prisma.user.findUnique({
               where: { email: credentials.email },
             });
 
@@ -38,7 +36,14 @@ export const authOptions: NextAuthOptions = {
                   role: user.role,
                   image: user.image,
                 };
+              } else {
+                throw new Error('Invalid password');
               }
+            }
+
+            // If user not found in Prisma database
+            if (!user) {
+              throw new Error('No user found with this email');
             }
           }
 
