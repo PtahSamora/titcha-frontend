@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { hash } from 'bcrypt';
+import { hash } from 'bcryptjs';
 import { readDB, writeDB, findUserByEmail } from '@/lib/devdb';
 import { registerTeacherSchema } from '@/lib/validation';
 import { uuid, generateId } from '@/lib/ids';
