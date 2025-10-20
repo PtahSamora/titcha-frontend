@@ -1,0 +1,111 @@
+# Vercel Deployment Ignore File
+# Excludes unnecessary files from deployment to reduce upload size and prevent errors
+
+# Dependencies (rebuilt on Vercel)
+node_modules/
+
+# Next.js build artifacts
+.next/cache/
+.next/trace/
+
+# Git files
+.git/
+.gitignore
+.github/
+
+# Environment files (set in Vercel dashboard instead)
+.env
+.env.local
+.env.example
+.env.development
+.env.test
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# Testing
+tests/
+__tests__/
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Build outputs
+dist/
+build/
+out/
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Large ML/AI files (not needed for deployment)
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.pb
+*.tflite
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Data files
+*.csv
+*.xls
+*.xlsx
+
+# Jupyter notebooks
+*.ipynb
+
+# Python cache (if any)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Documentation (already in repo)
+*.md
+!README.md
+
+# Backup files
+*.bak
+*.backup
+
+# Cache directories
+.cache/
+.npm/
+.yarn/
+.pnpm-store/
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Test/debug files
+test-login.js
+debug/
+.debug/
