@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { findUserById } from '@/lib/devdb';
 import { NextRequest } from 'next/server';
 
@@ -23,19 +24,44 @@ export async function requireUser(req?: NextRequest): Promise<AuthUser> {
     throw new Error('Unauthorized');
   }
 
-  // Fetch full user details from database
-  const user = await findUserById(session.user.id);
+  // Try Prisma first, then fallback to devdb
+  let user = null;
 
-  if (!user) {
+  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
+    user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+    });
+
+    if (user) {
+      return {
+        userId: user.id,
+        role: user.role,
+        email: user.email || '',
+        displayName: user.name || '',
+        schoolId: undefined, // Not stored in Prisma schema yet
+      };
+    }
+  }
+
+  // Fallback to devdb
+  const devUser = await findUserById(session.user.id);
+
+  if (!devUser) {
     throw new Error('User not found');
   }
 
   return {
-    userId: user.id,
-    role: user.role,
-    email: user.email,
-    displayName: user.displayName,
-    schoolId: user.schoolId,
+    userId: devUser.id,
+    role: devUser.role,
+    email: devUser.email,
+    displayName: devUser.displayName,
+    schoolId: devUser.schoolId,
   };
 }
 

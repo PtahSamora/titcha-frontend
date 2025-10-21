@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
-import { readDB, writeDB, findUserByEmail } from '@/lib/devdb';
+import { prisma } from '@/lib/prisma';
 import { registerTeacherSchema } from '@/lib/validation';
-import { uuid, generateId } from '@/lib/ids';
-import type { User, Teacher } from '@/lib/types';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,8 +20,22 @@ export async function POST(request: NextRequest) {
 
     const data = validation.data;
 
+    // Check if DATABASE_URL is properly configured
+    if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('xxxxx')) {
+      return NextResponse.json(
+        {
+          error: 'Database not configured',
+          message: 'Please configure DATABASE_URL in environment variables',
+        },
+        { status: 503 }
+      );
+    }
+
     // Check if user already exists
-    const existingUser = await findUserByEmail(data.email);
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
@@ -29,58 +43,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = await readDB();
-
     // Hash password
     const passwordHash = await hash(data.password, 10);
 
-    // Create user
-    const userId = uuid();
-    const now = new Date().toISOString();
-
-    const newUser: User = {
-      id: userId,
-      role: 'teacher',
-      email: data.email,
-      passwordHash,
-      displayName: data.fullName,
-      schoolId: data.schoolId,
-      meta: {
-        teacherSubjects: data.subjects,
-        theme: data.theme || 'teacher',
-        colors: data.colors,
+    // Create user in Prisma with uppercase role
+    const user = await prisma.user.create({
+      data: {
+        name: data.fullName,
+        email: data.email,
+        password: passwordHash,
+        role: 'TEACHER', // Uppercase for Prisma schema
       },
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    // Create teacher profile
-    const teacher: Teacher = {
-      id: generateId('teacher'),
-      schoolId: data.schoolId,
-      name: data.fullName,
-      subjects: data.subjects,
-    };
-
-    // Update database
-    db.users.push(newUser);
-    db.teachers.push(teacher);
-    await writeDB(db);
-
-    // Return safe user data
-    const { passwordHash: _, ...safeUser } = newUser;
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
 
     return NextResponse.json(
       {
         message: 'Teacher registered successfully',
-        user: safeUser,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role.toLowerCase(), // Return lowercase for frontend compatibility
+          displayName: user.name,
+          createdAt: user.createdAt,
+        },
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Teacher registration error:', error);
+
+    // Handle Prisma errors
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Email already in use' },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', message: error.message },
       { status: 500 }
     );
   }
