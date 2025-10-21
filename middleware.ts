@@ -13,7 +13,7 @@ export default withAuth(
       }
 
       // Role-based access control
-      const role = token.role as string;
+      const role = (token.role as string)?.toLowerCase(); // Normalize to lowercase
 
       // Extract the portal type from path: /portal/student/dashboard -> student
       const portalType = path.split('/')[2];
