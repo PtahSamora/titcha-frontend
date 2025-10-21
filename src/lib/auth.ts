@@ -1,12 +1,12 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { compare } from 'bcryptjs';
 import { prisma } from './prisma';
 import { findUserByEmail } from './devdb';
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  // Note: PrismaAdapter is NOT compatible with CredentialsProvider + JWT sessions
+  // We use JWT sessions for credentials-based auth
   providers: [
     CredentialsProvider({
       name: 'Credentials',
