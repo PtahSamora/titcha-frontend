@@ -22,18 +22,20 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    try {
-      // Let NextAuth and middleware handle all redirects
-      await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        redirect: true,
-        callbackUrl: '/portal',
-      });
-      // If signIn returns (on error), we handle it below
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
+    // Use redirect: false to handle errors properly
+    const result = await signIn('credentials', {
+      email: formData.email,
+      password: formData.password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      setError(result.error);
       setLoading(false);
+    } else if (result?.ok) {
+      // On success, manually redirect to /portal
+      // Middleware will handle the role-based redirect
+      window.location.href = '/portal';
     }
   };
 
