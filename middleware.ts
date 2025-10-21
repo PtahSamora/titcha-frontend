@@ -47,10 +47,17 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
 
+        console.log('[Middleware:authorized] Path:', path, 'Token:', token ? 'Present (role: ' + token.role + ')' : 'Missing');
+
         // For portal routes, require authentication
         if (path.startsWith('/portal')) {
           const isAuthorized = !!token;
-          console.log('[Middleware] authorized() check for', path, ':', isAuthorized);
+          console.log('[Middleware:authorized] Portal route - Authorized:', isAuthorized);
+
+          if (!isAuthorized) {
+            console.log('[Middleware:authorized] No token - will redirect to /login');
+          }
+
           return isAuthorized;
         }
 
