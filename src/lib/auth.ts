@@ -16,46 +16,59 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Invalid credentials');
+          throw new Error('Please provide email and password');
         }
 
-        try {
-          // Try Prisma database first (if DATABASE_URL is configured)
-          if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
+        // Try Prisma database first (if DATABASE_URL is configured)
+        if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
+          try {
             const user = await prisma.user.findUnique({
               where: { email: credentials.email },
             });
 
-            if (user && user.password) {
-              const isPasswordValid = await compare(credentials.password, user.password);
-              if (isPasswordValid) {
-                return {
-                  id: user.id,
-                  email: user.email || '',
-                  name: user.name || '',
-                  role: user.role,
-                  image: user.image,
-                };
-              } else {
-                throw new Error('Invalid password');
-              }
-            }
-
-            // If user not found in Prisma database
             if (!user) {
-              throw new Error('No user found with this email');
+              throw new Error('No account found with this email');
             }
-          }
 
-          // Fallback to devdb for development/testing
+            if (!user.password) {
+              throw new Error('Password not set for this account');
+            }
+
+            const isPasswordValid = await compare(credentials.password, user.password);
+            if (!isPasswordValid) {
+              throw new Error('Incorrect password');
+            }
+
+            return {
+              id: user.id,
+              email: user.email || '',
+              name: user.name || '',
+              role: user.role,
+              image: user.image,
+            };
+          } catch (error: any) {
+            // If it's a known error, rethrow it
+            if (error.message.includes('No account found') ||
+                error.message.includes('Incorrect password') ||
+                error.message.includes('Password not set')) {
+              throw error;
+            }
+
+            // If it's a database connection error, fall through to devdb
+            console.log('Prisma connection failed, falling back to devdb:', error.message);
+          }
+        }
+
+        // Fallback to devdb for development/testing
+        try {
           const devUser = await findUserByEmail(credentials.email);
           if (!devUser) {
-            throw new Error('No user found with this email');
+            throw new Error('No account found with this email');
           }
 
           const isPasswordValid = await compare(credentials.password, devUser.passwordHash);
           if (!isPasswordValid) {
-            throw new Error('Invalid password');
+            throw new Error('Incorrect password');
           }
 
           return {
@@ -66,9 +79,9 @@ export const authOptions: NextAuthOptions = {
             schoolId: devUser.schoolId,
             meta: devUser.meta,
           };
-        } catch (error) {
-          console.error('Auth error:', error);
-          throw new Error('Authentication failed');
+        } catch (error: any) {
+          console.error('Authentication error:', error);
+          throw error;
         }
       },
     }),

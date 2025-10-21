@@ -20,75 +20,117 @@ export async function POST(request: NextRequest) {
 
     const data = validation.data;
 
-    // Check if DATABASE_URL is properly configured
-    if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('xxxxx')) {
-      return NextResponse.json(
-        {
-          error: 'Database not configured',
-          message: 'Please configure DATABASE_URL in environment variables',
-        },
-        { status: 503 }
-      );
+    // Try Prisma first if DATABASE_URL is configured
+    if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
+      try {
+        // Check if user already exists
+        const existingUser = await prisma.user.findUnique({
+          where: { email: data.email },
+        });
+
+        if (existingUser) {
+          return NextResponse.json(
+            { error: 'User with this email already exists' },
+            { status: 409 }
+          );
+        }
+
+        // Hash password with bcrypt (10 salt rounds)
+        const passwordHash = await hash(data.password, 10);
+
+        // Create user in Prisma with uppercase role
+        const user = await prisma.user.create({
+          data: {
+            name: data.fullName,
+            email: data.email,
+            password: passwordHash,
+            role: 'TEACHER', // Uppercase for Prisma schema
+          },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            createdAt: true,
+          },
+        });
+
+        return NextResponse.json(
+          {
+            success: true,
+            message: 'Teacher registered successfully',
+            user: {
+              id: user.id,
+              email: user.email,
+              role: user.role.toLowerCase(),
+              displayName: user.name,
+            },
+          },
+          { status: 201 }
+        );
+      } catch (error: any) {
+        console.error('Prisma registration error:', error);
+
+        // Handle Prisma-specific errors
+        if (error.code === 'P2002') {
+          return NextResponse.json(
+            { error: 'Email already in use' },
+            { status: 400 }
+          );
+        }
+
+        // If it's a connection error, fall back to devdb
+        if (error.message?.includes("Can't reach database")) {
+          console.log('Database unreachable, falling back to devdb');
+          // Fall through to devdb registration below
+        } else {
+          // For other errors, return immediately
+          return NextResponse.json(
+            { error: 'Registration failed', message: error.message },
+            { status: 500 }
+          );
+        }
+      }
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: data.email },
-    });
+    // Fallback to devdb (for local development when database is unreachable)
+    const { createUser, findUserByEmail } = await import('@/lib/devdb');
 
-    if (existingUser) {
+    const existingDevUser = await findUserByEmail(data.email);
+    if (existingDevUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
         { status: 409 }
       );
     }
 
-    // Hash password
     const passwordHash = await hash(data.password, 10);
 
-    // Create user in Prisma with uppercase role
-    const user = await prisma.user.create({
-      data: {
-        name: data.fullName,
-        email: data.email,
-        password: passwordHash,
-        role: 'TEACHER', // Uppercase for Prisma schema
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
+    const devUser = await createUser({
+      email: data.email,
+      passwordHash,
+      displayName: data.fullName,
+      role: 'teacher', // lowercase for devdb
+      meta: {},
     });
 
     return NextResponse.json(
       {
+        success: true,
         message: 'Teacher registered successfully',
         user: {
-          id: user.id,
-          email: user.email,
-          role: user.role.toLowerCase(), // Return lowercase for frontend compatibility
-          displayName: user.name,
-          createdAt: user.createdAt,
+          id: devUser.id,
+          email: devUser.email,
+          role: devUser.role,
+          displayName: devUser.displayName,
         },
       },
       { status: 201 }
     );
   } catch (error: any) {
     console.error('Teacher registration error:', error);
-
-    // Handle Prisma errors
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Email already in use' },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(
-      { error: 'Internal server error', message: error.message },
+      { error: 'Registration failed', message: error.message },
       { status: 500 }
     );
   }

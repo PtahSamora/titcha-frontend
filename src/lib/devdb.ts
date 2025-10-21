@@ -105,6 +105,35 @@ export async function findSchoolById(id: string) {
   return db.schools.find(s => s.id === id);
 }
 
+export async function createUser(userData: {
+  email: string;
+  passwordHash: string;
+  displayName: string;
+  role: 'student' | 'teacher' | 'parent';
+  schoolId?: string;
+  meta?: any;
+}) {
+  return acquireWriteLock(async () => {
+    const db = await readDB();
+
+    const newUser = {
+      id: `user-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+      email: userData.email,
+      passwordHash: userData.passwordHash,
+      displayName: userData.displayName,
+      role: userData.role,
+      schoolId: userData.schoolId,
+      meta: userData.meta || {},
+      createdAt: new Date().toISOString(),
+    };
+
+    db.users.push(newUser);
+    await writeDB(db);
+
+    return newUser;
+  });
+}
+
 // Friendship helpers
 export async function addFriendship(aUserId: string, bUserId: string) {
   const db = await readDB();
