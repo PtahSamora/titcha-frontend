@@ -22,9 +22,12 @@ export const authOptions: NextAuthOptions = {
         // Try Prisma database first (if DATABASE_URL is configured)
         if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
           try {
+            console.log('[Auth] Attempting Prisma authentication for:', credentials.email);
             const user = await prisma.user.findUnique({
               where: { email: credentials.email },
             });
+
+            console.log('[Auth] Prisma user lookup result:', user ? 'Found' : 'Not found');
 
             if (!user) {
               throw new Error('No account found with this email');
@@ -35,10 +38,13 @@ export const authOptions: NextAuthOptions = {
             }
 
             const isPasswordValid = await compare(credentials.password, user.password);
+            console.log('[Auth] Password validation:', isPasswordValid ? 'Valid' : 'Invalid');
+
             if (!isPasswordValid) {
               throw new Error('Incorrect password');
             }
 
+            console.log('[Auth] Authentication successful via Prisma');
             return {
               id: user.id,
               email: user.email || '',
@@ -47,6 +53,8 @@ export const authOptions: NextAuthOptions = {
               image: user.image,
             };
           } catch (error: any) {
+            console.error('[Auth] Prisma authentication error:', error.message, error.code);
+
             // If it's a known error, rethrow it
             if (error.message.includes('No account found') ||
                 error.message.includes('Incorrect password') ||
@@ -55,22 +63,28 @@ export const authOptions: NextAuthOptions = {
             }
 
             // If it's a database connection error, fall through to devdb
-            console.log('Prisma connection failed, falling back to devdb:', error.message);
+            console.log('[Auth] Prisma connection failed, falling back to devdb');
           }
         }
 
         // Fallback to devdb for development/testing
         try {
+          console.log('[Auth] Attempting devdb authentication for:', credentials.email);
           const devUser = await findUserByEmail(credentials.email);
+          console.log('[Auth] Devdb user lookup result:', devUser ? 'Found' : 'Not found');
+
           if (!devUser) {
             throw new Error('No account found with this email');
           }
 
           const isPasswordValid = await compare(credentials.password, devUser.passwordHash);
+          console.log('[Auth] Devdb password validation:', isPasswordValid ? 'Valid' : 'Invalid');
+
           if (!isPasswordValid) {
             throw new Error('Incorrect password');
           }
 
+          console.log('[Auth] Authentication successful via devdb');
           return {
             id: devUser.id,
             email: devUser.email,
@@ -80,7 +94,7 @@ export const authOptions: NextAuthOptions = {
             meta: devUser.meta,
           };
         } catch (error: any) {
-          console.error('Authentication error:', error);
+          console.error('[Auth] Final authentication error:', error.message);
           throw error;
         }
       },
