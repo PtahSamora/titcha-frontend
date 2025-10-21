@@ -105,14 +105,17 @@ export const authOptions: NextAuthOptions = {
 
 // Role-based redirect helper
 export function getRoleBasedRedirect(role: string): string {
+  // Normalize role to uppercase for consistent matching
+  const normalizedRole = role?.toUpperCase();
+
   const redirects: Record<string, string> = {
-    student: '/portal/student/dashboard',
-    parent: '/portal/parent/dashboard',
-    teacher: '/portal/teacher/dashboard',
-    school: '/portal/school/dashboard',
-    admin: '/portal/admin/dashboard',
+    STUDENT: '/portal/student/dashboard',
+    PARENT: '/portal/parent/dashboard',
+    TEACHER: '/portal/teacher/dashboard',
+    SCHOOL: '/portal/school/dashboard',
+    ADMIN: '/portal/admin/dashboard',
   };
-  return redirects[role] || '/';
+  return redirects[normalizedRole] || '/';
 }
 
 // Helper to get session user in server components
