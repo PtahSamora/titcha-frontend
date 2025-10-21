@@ -101,22 +101,27 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
+      console.log('[JWT Callback] Trigger:', trigger, 'User:', user ? 'Present' : 'Missing');
       if (user) {
+        console.log('[JWT Callback] Adding user data to token:', { id: user.id, role: (user as any).role });
         token.role = (user as any).role;
         token.id = user.id;
         token.schoolId = (user as any).schoolId;
         token.meta = (user as any).meta;
       }
+      console.log('[JWT Callback] Token being returned:', { id: token.id, role: token.role });
       return token;
     },
     async session({ session, token }) {
+      console.log('[Session Callback] Creating session from token:', { id: token.id, role: token.role });
       if (session.user) {
         (session.user as any).role = token.role;
         (session.user as any).id = token.id;
         (session.user as any).schoolId = token.schoolId;
         (session.user as any).meta = token.meta;
       }
+      console.log('[Session Callback] Session created:', { userId: (session.user as any)?.id, role: (session.user as any)?.role });
       return session;
     },
   },
@@ -126,8 +131,21 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: true, // Enable debug mode to see detailed logs
 };
 
 // Role-based redirect helper
