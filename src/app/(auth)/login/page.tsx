@@ -1,34 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import ButtonGradient from '@/components/ui/ButtonGradient';
 import PasswordField from '@/components/forms/PasswordField';
-import { redirectByRole } from '@/lib/redirectByRole';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
-  // Redirect already logged-in users to their portal
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.role) {
-      setIsRedirecting(true);
-      const redirectUrl = redirectByRole(session.user.role);
-      router.replace(redirectUrl);
-    }
-  }, [session, status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,20 +23,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await signIn('credentials', {
+      // Let NextAuth and middleware handle all redirects
+      await signIn('credentials', {
         email: formData.email,
         password: formData.password,
-        redirect: false,
+        redirect: true,
+        callbackUrl: '/portal',
       });
-
-      if (result?.error) {
-        // Show the exact error from NextAuth
-        setError(result.error);
-        setLoading(false);
-      } else if (result?.ok) {
-        // Keep loading state - useSession will update and trigger redirect
-        // Don't set loading to false to avoid form flash
-      }
+      // If signIn returns (on error), we handle it below
     } catch (err) {
       setError('Something went wrong. Please try again.');
       setLoading(false);
@@ -63,14 +44,14 @@ export default function LoginPage() {
     }));
   };
 
-  // Show loading state while checking authentication or redirecting
-  if (status === 'loading' || isRedirecting) {
+  // Show loading state while checking authentication
+  if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gradient-brand flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-purple-600 mx-auto mb-4" />
           <p className="text-sm text-gray-600">
-            {isRedirecting ? 'Redirecting to your dashboard...' : 'Loading...'}
+            {loading ? 'Signing in...' : 'Loading...'}
           </p>
         </div>
       </div>

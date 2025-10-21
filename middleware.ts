@@ -15,6 +15,12 @@ export default withAuth(
       // Role-based access control
       const role = (token.role as string)?.toLowerCase(); // Normalize to lowercase
 
+      // If user visits /portal exactly, redirect to their role-specific dashboard
+      if (path === '/portal' || path === '/portal/') {
+        const correctPortal = `/portal/${role}/dashboard`;
+        return NextResponse.redirect(new URL(correctPortal, req.url));
+      }
+
       // Extract the portal type from path: /portal/student/dashboard -> student
       const portalType = path.split('/')[2];
 
