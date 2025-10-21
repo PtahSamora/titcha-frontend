@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -12,12 +12,21 @@ import { redirectByRole } from '@/lib/redirectByRole';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Redirect already logged-in users to their portal
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.role) {
+      const redirectUrl = redirectByRole(session.user.role);
+      router.replace(redirectUrl);
+    }
+  }, [session, status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,21 +43,13 @@ export default function LoginPage() {
       if (result?.error) {
         // Show the exact error from NextAuth
         setError(result.error);
+        setLoading(false);
       } else if (result?.ok) {
-        // Fetch session to get user role
-        const response = await fetch('/api/auth/session');
-        const session = await response.json();
-
-        if (session?.user?.role) {
-          const redirectUrl = redirectByRole(session.user.role);
-          router.push(redirectUrl);
-        } else {
-          router.push('/');
-        }
+        // Don't set loading to false - let useSession effect handle redirect
+        // The session will update automatically and trigger the useEffect above
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
@@ -59,6 +60,15 @@ export default function LoginPage() {
       [e.target.name]: e.target.value,
     }));
   };
+
+  // Show loading state while checking authentication
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-brand flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-brand flex items-center justify-center px-4 py-12">
