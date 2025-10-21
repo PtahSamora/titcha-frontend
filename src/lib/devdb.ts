@@ -125,6 +125,7 @@ export async function createUser(userData: {
       schoolId: userData.schoolId,
       meta: userData.meta || {},
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     db.users.push(newUser);
