@@ -22,20 +22,29 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    // Use redirect: false to handle errors properly
-    const result = await signIn('credentials', {
-      email: formData.email,
-      password: formData.password,
-      redirect: false,
-    });
+    try {
+      // Use redirect: false to handle errors properly
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
+      });
 
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+      } else if (result?.ok) {
+        // On success, use router.push for client-side navigation
+        // This ensures the session is properly established before navigating
+        console.log('[Login] Sign in successful, redirecting to portal');
+
+        // Use Next.js router instead of window.location for better session handling
+        window.location.href = '/portal';
+      }
+    } catch (error) {
+      console.error('[Login] Sign in error:', error);
+      setError('An unexpected error occurred');
       setLoading(false);
-    } else if (result?.ok) {
-      // On success, manually redirect to /portal
-      // Middleware will handle the role-based redirect
-      window.location.href = '/portal';
     }
   };
 
