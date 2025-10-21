@@ -19,10 +19,12 @@ export default function LoginPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Redirect already logged-in users to their portal
   useEffect(() => {
     if (status === 'authenticated' && session?.user?.role) {
+      setIsRedirecting(true);
       const redirectUrl = redirectByRole(session.user.role);
       router.replace(redirectUrl);
     }
@@ -45,8 +47,8 @@ export default function LoginPage() {
         setError(result.error);
         setLoading(false);
       } else if (result?.ok) {
-        // Don't set loading to false - let useSession effect handle redirect
-        // The session will update automatically and trigger the useEffect above
+        // Keep loading state - useSession will update and trigger redirect
+        // Don't set loading to false to avoid form flash
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -61,11 +63,16 @@ export default function LoginPage() {
     }));
   };
 
-  // Show loading state while checking authentication
-  if (status === 'loading') {
+  // Show loading state while checking authentication or redirecting
+  if (status === 'loading' || isRedirecting) {
     return (
       <div className="min-h-screen bg-gradient-brand flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-600 mx-auto mb-4" />
+          <p className="text-sm text-gray-600">
+            {isRedirecting ? 'Redirecting to your dashboard...' : 'Loading...'}
+          </p>
+        </div>
       </div>
     );
   }
