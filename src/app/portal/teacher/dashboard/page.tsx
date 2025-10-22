@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { Users, FileText, ClipboardList, TrendingUp, BookOpen, Upload, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -84,8 +85,36 @@ const mockTeacherDataByGrade: Record<string, any> = {
 const teacherName = "Mr. Nkosi";
 
 export default function TeacherDashboard() {
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [selectedGrade, setSelectedGrade] = useState('7');
+
+  useEffect(() => {
+    // Only redirect after session fully resolves
+    if (status === 'unauthenticated') {
+      router.replace('/login');
+    } else if (session && (session.user as any).role?.toUpperCase() !== 'TEACHER') {
+      // Redirect to correct portal if wrong role
+      const role = ((session.user as any).role as string)?.toLowerCase();
+      router.replace(`/portal/${role}/dashboard`);
+    }
+  }, [status, session, router]);
+
+  // Show loading state until session is ready
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return null; // Will redirect via useEffect
+  }
 
   // Get data for selected grade
   const currentData = mockTeacherDataByGrade[selectedGrade];

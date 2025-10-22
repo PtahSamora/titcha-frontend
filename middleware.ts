@@ -1,76 +1,70 @@
-import { withAuth } from 'next-auth/middleware';
+import { getToken } from 'next-auth/jwt';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token;
-    const path = req.nextUrl.pathname;
+export async function middleware(req: NextRequest) {
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const url = req.nextUrl;
 
-    console.log('[Middleware] Path:', path, 'Token:', token ? 'Present' : 'Missing');
+  console.log('[Middleware] Path:', url.pathname, 'Token:', token ? `Present (role: ${token.role})` : 'Missing');
 
-    // Protected portal routes - require authentication
-    if (path.startsWith('/portal')) {
-      if (!token) {
-        console.log('[Middleware] No token, redirecting to login');
-        return NextResponse.redirect(new URL('/login', req.url));
-      }
-
-      // Role-based access control
-      const role = (token.role as string)?.toLowerCase(); // Normalize to lowercase
-      console.log('[Middleware] User role:', role);
-
-      // If user visits /portal exactly, redirect to their role-specific dashboard
-      if (path === '/portal' || path === '/portal/') {
-        const correctPortal = `/portal/${role}/dashboard`;
-        console.log('[Middleware] Redirecting /portal to:', correctPortal);
-        return NextResponse.redirect(new URL(correctPortal, req.url));
-      }
-
-      // Extract the portal type from path: /portal/student/dashboard -> student
-      const portalType = path.split('/')[2];
-
-      // Check if user has access to this portal
-      if (portalType && role !== portalType) {
-        // Redirect to their correct portal
-        const correctPortal = `/portal/${role}/dashboard`;
-        console.log('[Middleware] Wrong portal, redirecting to:', correctPortal);
-        return NextResponse.redirect(new URL(correctPortal, req.url));
-      }
-
-      console.log('[Middleware] Access granted to:', path);
-    }
-
+  // Allow login, register, and API routes to pass without checks
+  if (
+    url.pathname.startsWith('/login') ||
+    url.pathname.startsWith('/register') ||
+    url.pathname.startsWith('/api') ||
+    url.pathname.startsWith('/_next') ||
+    url.pathname.startsWith('/static') ||
+    url.pathname === '/favicon.ico'
+  ) {
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const path = req.nextUrl.pathname;
-
-        console.log('[Middleware:authorized] Path:', path, 'Token:', token ? 'Present (role: ' + token.role + ')' : 'Missing');
-
-        // For portal routes, require authentication
-        if (path.startsWith('/portal')) {
-          const isAuthorized = !!token;
-          console.log('[Middleware:authorized] Portal route - Authorized:', isAuthorized);
-
-          if (!isAuthorized) {
-            console.log('[Middleware:authorized] No token - will redirect to /login');
-          }
-
-          return isAuthorized;
-        }
-
-        // Allow all other routes
-        return true;
-      },
-    },
   }
-);
 
-// Protect these routes
+  // Allow public routes (home, features, pricing, etc.)
+  if (
+    url.pathname === '/' ||
+    url.pathname.startsWith('/features') ||
+    url.pathname.startsWith('/pricing') ||
+    url.pathname.startsWith('/about') ||
+    url.pathname.startsWith('/contact') ||
+    url.pathname.startsWith('/terms') ||
+    url.pathname.startsWith('/privacy') ||
+    url.pathname.startsWith('/forgot-password')
+  ) {
+    return NextResponse.next();
+  }
+
+  // Redirect unauthenticated users trying to access /portal
+  if (!token) {
+    console.log('[Middleware] No token - redirecting to /login');
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  // Normalize role to lowercase for consistent matching
+  const role = (token.role as string)?.toLowerCase();
+
+  // Redirect /portal to correct dashboard based on user role
+  if (url.pathname === '/portal' || url.pathname === '/portal/') {
+    const dashboardUrl = `/portal/${role}/dashboard`;
+    console.log('[Middleware] Redirecting /portal to:', dashboardUrl);
+    return NextResponse.redirect(new URL(dashboardUrl, req.url));
+  }
+
+  // For other /portal/* routes, let the client-side session guards handle role checks
+  // This prevents middleware from competing with client-side redirects
+  console.log('[Middleware] Allowing access to:', url.pathname);
+  return NextResponse.next();
+}
+
 export const config = {
   matcher: [
-    '/portal/:path*',
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api/auth (auth endpoints)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api/auth|_next/static|_next/image|favicon.ico).*)',
   ],
 };
