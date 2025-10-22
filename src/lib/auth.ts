@@ -140,7 +140,7 @@ export const authOptions: NextAuthOptions = {
         : 'next-auth.session-token',
       options: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'none', // Changed to 'none' for cross-origin support in production
         path: '/',
         secure: process.env.NODE_ENV === 'production',
       },
