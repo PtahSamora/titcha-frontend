@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { MessageSquare, X } from 'lucide-react';
 import { useLessonStore } from '@/lib/store';
 import { Board } from '@/components/lesson/Board';
 import { AIStreamOnBoard } from '@/components/lesson/AIStreamOnBoard';
 import { ToolDock } from '@/components/lesson/ToolDock';
 import { Checkpoint } from '@/components/lesson/Checkpoint';
+import LessonChat from '@/components/LessonChat';
 // Type for Excalidraw API reference
 type ExcalidrawImperativeAPI = any;
 
@@ -41,6 +43,7 @@ export default function LessonWorkspacePage() {
 
   const [questionInput, setQuestionInput] = useState('');
   const [showCheckpoint, setShowCheckpoint] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const boardRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
   useEffect(() => {
@@ -101,6 +104,20 @@ export default function LessonWorkspacePage() {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Chat Toggle */}
+          <button
+            onClick={() => setShowChat(!showChat)}
+            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${
+              showChat
+                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            title="Toggle AI Tutor Chat"
+          >
+            <MessageSquare className="h-4 w-4" />
+            AI Tutor
+          </button>
+
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
@@ -134,7 +151,7 @@ export default function LessonWorkspacePage() {
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Board Area */}
-        <div className="flex-1 relative">
+        <div className={`relative transition-all duration-300 ${showChat ? 'flex-[0.6]' : 'flex-1'}`}>
           <Board
             theme={boardTheme}
             initialElements={[]}
@@ -164,8 +181,24 @@ export default function LessonWorkspacePage() {
           )}
         </div>
 
+        {/* Chat Panel */}
+        {showChat && (
+          <div className="flex-[0.4] border-l border-gray-200 bg-white relative">
+            <button
+              onClick={() => setShowChat(false)}
+              className="absolute top-4 right-4 z-10 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              title="Close chat"
+            >
+              <X className="h-5 w-5 text-gray-600" />
+            </button>
+            <div className="h-full p-4">
+              <LessonChat subject={subject.name} topic={topic} />
+            </div>
+          </div>
+        )}
+
         {/* Tool Dock */}
-        <ToolDock onUpload={handleUploadImage} />
+        {!showChat && <ToolDock onUpload={handleUploadImage} />}
       </div>
 
       {/* Bottom Question Bar */}
