@@ -34,11 +34,14 @@ export default function LoginPage() {
         setError(result.error);
         setLoading(false);
       } else if (result?.ok) {
-        // On success, use router.push for client-side navigation
-        // This ensures the session is properly established before navigating
         console.log('[Login] Sign in successful, redirecting to portal');
 
-        // Use Next.js router instead of window.location for better session handling
+        // Keep loading state true to prevent form re-render
+        // Add a small delay to ensure session cookie is properly set
+        // before navigation begins
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Use full page reload to ensure cookie is sent with navigation request
         window.location.href = '/portal';
       }
     } catch (error) {
