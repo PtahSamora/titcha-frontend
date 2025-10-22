@@ -8,10 +8,11 @@ export async function middleware(req: NextRequest) {
 
   console.log('[Middleware] Path:', url.pathname, 'Token:', token ? `Present (role: ${token.role})` : 'Missing');
 
-  // Allow login, register, and API routes to pass without checks
+  // Allow login, register, API routes, and auth callbacks to pass without checks
   if (
     url.pathname.startsWith('/login') ||
     url.pathname.startsWith('/register') ||
+    url.pathname.startsWith('/api/auth') ||
     url.pathname.startsWith('/api') ||
     url.pathname.startsWith('/_next') ||
     url.pathname.startsWith('/static') ||
