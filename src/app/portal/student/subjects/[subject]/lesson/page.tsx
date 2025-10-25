@@ -4,6 +4,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { RefreshCw, Sparkles, User, Bot, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 // Types
 interface ChatMessage {
@@ -164,22 +168,16 @@ export default function LessonBoardPage() {
     }
   };
 
-  // Format text with basic markdown support
-  const formatText = (text: string) => {
-    return text.split('\n').map((line, idx) => {
-      // Bold text **text**
-      const parts = line.split(/(\*\*.*?\*\*)/g);
-      return (
-        <p key={idx} className="mb-2 last:mb-0">
-          {parts.map((part, i) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-              return <strong key={i}>{part.slice(2, -2)}</strong>;
-            }
-            return part;
-          })}
-        </p>
-      );
-    });
+  // Render markdown with LaTeX math support
+  const renderMarkdown = (text: string) => {
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+      >
+        {text}
+      </ReactMarkdown>
+    );
   };
 
   return (
@@ -247,7 +245,7 @@ export default function LessonBoardPage() {
                           <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
                         </div>
                         <div className="text-sm md:text-base text-gray-700 leading-relaxed">
-                          {formatText(message.text)}
+                          {renderMarkdown(message.text)}
                         </div>
                       </div>
                     </div>
@@ -263,7 +261,7 @@ export default function LessonBoardPage() {
                           <h3 className="text-sm md:text-base font-semibold text-white">You</h3>
                         </div>
                         <div className="text-sm md:text-base text-white leading-relaxed">
-                          {formatText(message.text)}
+                          {renderMarkdown(message.text)}
                         </div>
                       </div>
                       <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
