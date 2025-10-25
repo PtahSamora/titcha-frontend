@@ -44,7 +44,10 @@ export default function LessonWorkspacePage() {
   const [questionInput, setQuestionInput] = useState('');
   const [showCheckpoint, setShowCheckpoint] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
   const boardRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (topic && subjectId) {
@@ -58,10 +61,51 @@ export default function LessonWorkspacePage() {
     }
   }, [checkpoint]);
 
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
   const handleAskQuestion = async () => {
-    if (!questionInput.trim()) return;
-    await askQuestion(questionInput);
+    if (!questionInput.trim() || chatLoading) return;
+
+    const userMessage = { role: 'user' as const, text: questionInput };
+    setChatMessages((prev) => [...prev, userMessage]);
+    const question = questionInput;
     setQuestionInput('');
+    setChatLoading(true);
+
+    try {
+      const res = await fetch('/api/ai/tutor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: subject.name,
+          topic: topic,
+          question: question,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'AI Tutor failed to respond');
+      }
+
+      const assistantMessage = { role: 'assistant' as const, text: data.reply };
+      setChatMessages((prev) => [...prev, assistantMessage]);
+    } catch (error: any) {
+      console.error('Error getting AI response:', error);
+      const errorMessage = {
+        role: 'assistant' as const,
+        text: error.message || 'Sorry, I encountered an error. Please try again.',
+      };
+      setChatMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   const handleUploadImage = async (file: File) => {
@@ -201,25 +245,71 @@ export default function LessonWorkspacePage() {
         {!showChat && <ToolDock onUpload={handleUploadImage} />}
       </div>
 
-      {/* Bottom Question Bar */}
-      <div className="bg-white border-t border-gray-200 shadow-lg px-6 py-4 z-20">
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <input
-            type="text"
-            value={questionInput}
-            onChange={(e) => setQuestionInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAskQuestion()}
-            placeholder="Ask a question about this topic..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
-            disabled={loading}
-          />
-          <button
-            onClick={handleAskQuestion}
-            disabled={!questionInput.trim() || loading}
-            className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Ask AI
-          </button>
+      {/* Bottom Chat Area */}
+      <div className="bg-white border-t border-gray-200 shadow-lg z-20 flex flex-col" style={{ height: '300px' }}>
+        {/* Chat Messages */}
+        <div
+          ref={chatContainerRef}
+          className="flex-1 overflow-y-auto px-6 py-4 space-y-3"
+          style={{ scrollbarWidth: 'thin' }}
+        >
+          {chatMessages.length === 0 && (
+            <div className="text-center text-gray-400 py-8">
+              <p className="text-sm">Ask a question about {topic || 'this topic'} to get started!</p>
+            </div>
+          )}
+          {chatMessages.map((msg, idx) => (
+            <div
+              key={idx}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  msg.role === 'user'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-800 border border-gray-200'
+                }`}
+              >
+                <p className="whitespace-pre-wrap text-sm">{msg.text}</p>
+              </div>
+            </div>
+          ))}
+          {chatLoading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 border border-gray-200 rounded-lg px-4 py-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
+                  <span className="text-sm text-gray-500 italic">Titcha is thinking...</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Input Bar */}
+        <div className="border-t border-gray-200 px-6 py-3">
+          <div className="max-w-4xl mx-auto flex gap-3">
+            <input
+              type="text"
+              value={questionInput}
+              onChange={(e) => setQuestionInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleAskQuestion()}
+              placeholder={`Ask about ${topic || 'this topic'}...`}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 text-sm"
+              disabled={chatLoading}
+            />
+            <button
+              onClick={handleAskQuestion}
+              disabled={!questionInput.trim() || chatLoading}
+              className="px-5 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
 
