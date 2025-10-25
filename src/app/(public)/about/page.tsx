@@ -39,28 +39,10 @@ const values = [
 
 const team = [
   {
-    name: 'Dr. Sarah Mitchell',
-    role: 'CEO & Co-Founder',
-    bio: 'Former Stanford AI researcher with 15 years in edtech innovation.',
-    image: '/team/sarah.jpg',
-  },
-  {
-    name: 'James Chen',
-    role: 'CTO & Co-Founder',
-    bio: 'Ex-Google engineer specializing in machine learning and NLP.',
-    image: '/team/james.jpg',
-  },
-  {
-    name: 'Prof. Maria Rodriguez',
-    role: 'Chief Academic Officer',
-    bio: 'Award-winning educator with a PhD in Curriculum Development.',
-    image: '/team/maria.jpg',
-  },
-  {
-    name: 'David Kim',
-    role: 'Head of Product',
-    bio: '10+ years building student-centered learning platforms.',
-    image: '/team/david.jpg',
+    name: 'Vuyile Sixaba',
+    role: 'Founder',
+    bio: 'AI Engineer passionate about making learning a shared journey between home and school.',
+    image: '/team/vuyile.jpg',
   },
 ];
 
@@ -98,18 +80,16 @@ export default function AboutPage() {
           >
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 md:p-12">
               <p className="text-lg text-gray-700 leading-relaxed mb-6">
-                Titcha was born from a simple observation: every student learns differently, yet traditional education treats them the same.
-                In 2023, our founders—Dr. Sarah Mitchell and James Chen—combined their expertise in AI and education to create a platform
-                that adapts to each learner's unique needs.
+                Titcha began with a simple belief — that learning works best when parents, teachers, and technology come together to guide each child's journey.
+                Built by educators and technologists, Titcha was created to help parents stay truly involved in their child's education — not just as observers, but as active partners.
               </p>
               <p className="text-lg text-gray-700 leading-relaxed mb-6">
-                Starting with a pilot program in 5 schools, we witnessed firsthand how AI-driven personalization transformed student engagement.
-                Teachers gained insights they never had before. Students who struggled began to thrive. Parents finally had transparency into
-                their children's learning journey.
+                On Titcha, parents don't just watch their children learn — they guide the journey. They can set challenges, choose what to focus on, and track how their children progress,
+                all within the structure teachers have already laid out. Every activity follows the school's curriculum, so parents can trust that what happens at home strengthens what's taught in class.
               </p>
               <p className="text-lg text-gray-700 leading-relaxed">
-                Today, Titcha serves over 500 schools across 30 countries, supporting more than 100,000 students. But we're just getting started.
-                Our vision is a world where every student has access to a personalized AI tutor—regardless of location, language, or economic status.
+                With Titcha's AI tutor offering gentle guidance and instant feedback, learning becomes a shared experience — one where children grow in confidence, teachers stay supported,
+                and parents feel truly connected.
               </p>
             </div>
           </motion.div>
@@ -181,10 +161,10 @@ export default function AboutPage() {
       <section className="py-24 bg-white">
         <div className="container mx-auto px-4">
           <SectionTitle
-            title="Meet Our Team"
-            subtitle="Passionate educators, engineers, and innovators working to transform education"
+            title="Meet the Founder"
+            subtitle="Building technology that brings families and schools closer together"
           />
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          <div className="flex justify-center max-w-6xl mx-auto">
             {team.map((member, index) => (
               <motion.div
                 key={member.name}
@@ -192,16 +172,16 @@ export default function AboutPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="text-center"
+                className="text-center max-w-md"
               >
-                <div className="mb-4 relative group">
-                  <div className="w-48 h-48 mx-auto rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-5xl font-bold group-hover:scale-105 transition-transform">
+                <div className="mb-6 relative group">
+                  <div className="w-56 h-56 mx-auto rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-6xl font-bold group-hover:scale-105 transition-transform shadow-2xl">
                     {member.name.split(' ').map(n => n[0]).join('')}
                   </div>
                 </div>
-                <h4 className="text-xl font-bold text-gray-900 mb-1">{member.name}</h4>
-                <p className="text-purple-600 font-medium mb-2">{member.role}</p>
-                <p className="text-gray-600 text-sm">{member.bio}</p>
+                <h4 className="text-2xl font-bold text-gray-900 mb-2">{member.name}</h4>
+                <p className="text-purple-600 font-semibold mb-3 text-lg">{member.role}</p>
+                <p className="text-gray-600 text-base leading-relaxed">{member.bio}</p>
               </motion.div>
             ))}
           </div>
