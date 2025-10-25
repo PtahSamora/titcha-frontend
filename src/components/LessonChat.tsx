@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, BookOpen, Lightbulb, Target, HelpCircle } from 'lucide-react';
-import { mockContextualResponse, extractLatexExpressions, type AIResponse } from '@/lib/mockOpenAI';
+import { Send, Bot, User, BookOpen, Lightbulb, Target, HelpCircle, AlertTriangle } from 'lucide-react';
+import { extractLatexExpressions, type AIResponse } from '@/lib/mockOpenAI';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
@@ -71,23 +71,50 @@ export default function LessonChat({ subject, topic }: LessonChatProps) {
     };
 
     setMessages((prev) => [...prev, userMsg]);
+    const questionText = input;
     setInput('');
     setIsLoading(true);
 
     try {
-      const reply = await mockContextualResponse(input, subject, topic);
+      // Call the real OpenAI API endpoint
+      const res = await fetch('/api/ai/subject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: subject,
+          topic: topic,
+          question: questionText,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'AI Tutor failed to respond');
+      }
+
       const assistantMsg: Message = {
         role: 'assistant',
-        text: reply.text,
-        structure: reply.structure,
+        text: data.response.text,
+        structure: data.response.structure,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error getting AI response:', error);
+
+      // Provide helpful error messages based on error type
+      let errorText = 'Sorry, I encountered an error. Please try again.';
+
+      if (error.message.includes('quota')) {
+        errorText = 'The AI service is temporarily unavailable due to high usage. Please try again in a few moments.';
+      } else if (error.message.includes('configuration')) {
+        errorText = 'There\'s a configuration issue with the AI service. Please contact support.';
+      }
+
       const errorMsg: Message = {
         role: 'assistant',
-        text: 'Sorry, I encountered an error. Please try again.',
+        text: errorText,
         structure: 'tip',
         timestamp: new Date(),
       };
