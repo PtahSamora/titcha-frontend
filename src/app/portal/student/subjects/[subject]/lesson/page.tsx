@@ -2,23 +2,39 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { MessageSquare, X } from 'lucide-react';
-import { useLessonStore } from '@/lib/store';
-import { Board } from '@/components/lesson/Board';
-import { AIStreamOnBoard } from '@/components/lesson/AIStreamOnBoard';
-import { ToolDock } from '@/components/lesson/ToolDock';
-import { Checkpoint } from '@/components/lesson/Checkpoint';
-import LessonChat from '@/components/LessonChat';
-// Type for Excalidraw API reference
-type ExcalidrawImperativeAPI = any;
+import { RefreshCw, Sparkles, User, Bot, Send } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const subjectData: Record<string, { name: string; icon: string; color: string }> = {
-  math: { name: 'Mathematics', icon: '📐', color: '#9333EA' },
-  science: { name: 'Science', icon: '🔬', color: '#3B82F6' },
-  english: { name: 'English', icon: '📚', color: '#10B981' },
+// Types
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  timestamp: number;
+}
+
+const subjectData: Record<string, { name: string; icon: string; color: string; gradient: string }> = {
+  math: {
+    name: 'Mathematics',
+    icon: '📐',
+    color: '#9333EA',
+    gradient: 'from-purple-500 to-pink-500'
+  },
+  science: {
+    name: 'Science',
+    icon: '🔬',
+    color: '#3B82F6',
+    gradient: 'from-blue-500 to-cyan-500'
+  },
+  english: {
+    name: 'English',
+    icon: '📚',
+    color: '#10B981',
+    gradient: 'from-green-500 to-emerald-500'
+  },
 };
 
-export default function LessonWorkspacePage() {
+export default function LessonBoardPage() {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
@@ -27,55 +43,72 @@ export default function LessonWorkspacePage() {
   const topic = searchParams.get('topic') || '';
   const subject = subjectData[subjectId] || subjectData.math;
 
-  const {
-    boardTheme,
-    blocks,
-    checkpoint,
-    loading,
-    error,
-    toggleTheme,
-    startLesson,
-    askQuestion,
-    loadCheckpoint,
-    submitCheckpoint,
-    explainImage,
-  } = useLessonStore();
-
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [questionInput, setQuestionInput] = useState('');
-  const [showCheckpoint, setShowCheckpoint] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
-  const [chatLoading, setChatLoading] = useState(false);
-  const boardRef = useRef<ExcalidrawImperativeAPI | null>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  // localStorage key for this specific lesson
+  const storageKey = `titcha-lesson-${subjectId}-${topic.replace(/\s+/g, '-')}`;
+
+  // Load messages from localStorage on mount
   useEffect(() => {
-    if (topic && subjectId) {
-      startLesson(subject.name, topic);
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setMessages(parsed);
+        } catch (error) {
+          console.error('Failed to parse stored messages:', error);
+        }
+      } else {
+        // Add welcome message if no history
+        const welcomeMessage: ChatMessage = {
+          id: `welcome-${Date.now()}`,
+          role: 'assistant',
+          text: `Welcome to your ${subject.name} lesson on **${topic}**! 🎓\n\nI'm Titcha, your AI tutor. Ask me anything about this topic, and I'll provide clear, structured explanations to help you learn. Let's get started!`,
+          timestamp: Date.now(),
+        };
+        setMessages([welcomeMessage]);
+        localStorage.setItem(storageKey, JSON.stringify([welcomeMessage]));
+      }
     }
-  }, [topic, subjectId]);
+  }, [subjectId, topic, storageKey, subject.name]);
 
+  // Save messages to localStorage whenever they change
   useEffect(() => {
-    if (checkpoint) {
-      setShowCheckpoint(true);
+    if (typeof window !== 'undefined' && messages.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
     }
-  }, [checkpoint]);
+  }, [messages, storageKey]);
 
-  // Auto-scroll chat to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    if (boardRef.current) {
+      boardRef.current.scrollTo({
+        top: boardRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
     }
-  }, [chatMessages]);
+  }, [messages]);
 
+  // Handle sending a question
   const handleAskQuestion = async () => {
-    if (!questionInput.trim() || chatLoading) return;
+    if (!questionInput.trim() || isLoading) return;
 
-    const userMessage = { role: 'user' as const, text: questionInput };
-    setChatMessages((prev) => [...prev, userMessage]);
+    const userMessage: ChatMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      text: questionInput,
+      timestamp: Date.now(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
     const question = questionInput;
     setQuestionInput('');
-    setChatLoading(true);
+    setIsLoading(true);
 
     try {
       const res = await fetch('/api/ai/tutor', {
@@ -94,233 +127,219 @@ export default function LessonWorkspacePage() {
         throw new Error(data.error || 'AI Tutor failed to respond');
       }
 
-      const assistantMessage = { role: 'assistant' as const, text: data.reply };
-      setChatMessages((prev) => [...prev, assistantMessage]);
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        text: data.reply,
+        timestamp: Date.now(),
+      };
+
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error: any) {
       console.error('Error getting AI response:', error);
-      const errorMessage = {
-        role: 'assistant' as const,
-        text: error.message || 'Sorry, I encountered an error. Please try again.',
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        text: `Sorry, I encountered an error: ${error.message || 'Please try again.'}`,
+        timestamp: Date.now(),
       };
-      setChatMessages((prev) => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
-      setChatLoading(false);
+      setIsLoading(false);
+      inputRef.current?.focus();
     }
   };
 
-  const handleUploadImage = async (file: File) => {
-    await explainImage(file);
+  // Reset lesson and clear history
+  const handleResetLesson = () => {
+    if (confirm('Are you sure you want to reset this lesson? All chat history will be cleared.')) {
+      const welcomeMessage: ChatMessage = {
+        id: `welcome-${Date.now()}`,
+        role: 'assistant',
+        text: `Welcome to your ${subject.name} lesson on **${topic}**! 🎓\n\nI'm Titcha, your AI tutor. Ask me anything about this topic, and I'll provide clear, structured explanations to help you learn. Let's get started!`,
+        timestamp: Date.now(),
+      };
+      setMessages([welcomeMessage]);
+      localStorage.setItem(storageKey, JSON.stringify([welcomeMessage]));
+    }
   };
 
-  const handleLoadCheckpoint = async () => {
-    await loadCheckpoint(topic);
-  };
-
-  const handleCheckpointComplete = (results: any[]) => {
-    submitCheckpoint(results);
-    setShowCheckpoint(false);
+  // Format text with basic markdown support
+  const formatText = (text: string) => {
+    return text.split('\n').map((line, idx) => {
+      // Bold text **text**
+      const parts = line.split(/(\*\*.*?\*\*)/g);
+      return (
+        <p key={idx} className="mb-2 last:mb-0">
+          {parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return <strong key={i}>{part.slice(2, -2)}</strong>;
+            }
+            return part;
+          })}
+        </p>
+      );
+    });
   };
 
   return (
-    <div className="lesson-workspace h-screen flex flex-col overflow-hidden">
-      {/* Top Bar */}
-      <div className="bg-white border-b border-gray-200 shadow-sm px-6 py-3 flex items-center justify-between z-20">
-        <div className="flex items-center gap-4">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Top Header Bar */}
+      <div className="bg-white border-b border-gray-200 shadow-sm px-4 md:px-6 py-3 flex items-center justify-between z-20">
+        <div className="flex items-center gap-3 md:gap-4">
           <button
             onClick={() => router.push(`/portal/student/subjects/${subjectId}`)}
-            className="text-gray-600 hover:text-gray-900 transition-colors"
+            className="text-gray-600 hover:text-gray-900 transition-colors text-sm md:text-base"
           >
             ← Back
           </button>
-          <div className="h-6 w-px bg-gray-300" />
-          <div className="flex items-center gap-3">
+          <div className="h-6 w-px bg-gray-300 hidden md:block" />
+          <div className="flex items-center gap-2 md:gap-3">
             <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-              style={{ backgroundColor: subject.color }}
+              className={`w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center text-lg md:text-xl bg-gradient-to-br ${subject.gradient}`}
             >
               {subject.icon}
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">{topic}</h1>
-              <p className="text-xs text-gray-600">{subject.name}</p>
+              <h1 className="text-sm md:text-lg font-bold text-gray-900">{topic}</h1>
+              <p className="text-xs text-gray-600 hidden md:block">{subject.name}</p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Chat Toggle */}
-          <button
-            onClick={() => setShowChat(!showChat)}
-            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-2 ${
-              showChat
-                ? 'bg-purple-600 text-white hover:bg-purple-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-            title="Toggle AI Tutor Chat"
-          >
-            <MessageSquare className="h-4 w-4" />
-            AI Tutor
-          </button>
-
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm font-medium text-gray-700"
-            title="Toggle board theme"
-          >
-            {boardTheme === 'blackboard' ? '🌙 Dark' : '☀️ Light'}
-          </button>
-
-          {/* Checkpoint Button */}
-          <button
-            onClick={handleLoadCheckpoint}
-            disabled={loading}
-            className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
-          >
-            ✅ Take Quiz
-          </button>
-
-          {/* Export */}
-          <button
-            onClick={() => {
-              // Export handled by Excalidraw UI
-            }}
-            className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-sm font-medium text-gray-700"
-          >
-            📥 Export
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Board Area */}
-        <div className={`relative transition-all duration-300 ${showChat ? 'flex-[0.6]' : 'flex-1'}`}>
-          <Board
-            theme={boardTheme}
-            initialElements={[]}
-            onChange={(elements) => {
-              // Handle board changes if needed
-            }}
-          />
-
-          {/* AI Content Overlay */}
-          <AIStreamOnBoard blocks={blocks} boardTheme={boardTheme} />
-
-          {/* Loading Overlay */}
-          {loading && (
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-30 pointer-events-none">
-              <div className="bg-white rounded-lg shadow-lg p-6 flex items-center gap-3">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
-                <span className="text-gray-900 font-medium">AI is thinking...</span>
-              </div>
-            </div>
-          )}
-
-          {/* Error Display */}
-          {error && (
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-30">
-              {error}
-            </div>
-          )}
-        </div>
-
-        {/* Chat Panel */}
-        {showChat && (
-          <div className="flex-[0.4] border-l border-gray-200 bg-white relative">
-            <button
-              onClick={() => setShowChat(false)}
-              className="absolute top-4 right-4 z-10 p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              title="Close chat"
-            >
-              <X className="h-5 w-5 text-gray-600" />
-            </button>
-            <div className="h-full p-4">
-              <LessonChat subject={subject.name} topic={topic} />
-            </div>
-          </div>
-        )}
-
-        {/* Tool Dock */}
-        {!showChat && <ToolDock onUpload={handleUploadImage} />}
-      </div>
-
-      {/* Bottom Chat Area */}
-      <div className="bg-white border-t border-gray-200 shadow-lg z-20 flex flex-col" style={{ height: '300px' }}>
-        {/* Chat Messages */}
-        <div
-          ref={chatContainerRef}
-          className="flex-1 overflow-y-auto px-6 py-4 space-y-3"
-          style={{ scrollbarWidth: 'thin' }}
+        <button
+          onClick={handleResetLesson}
+          className="px-3 md:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-xs md:text-sm font-medium text-gray-700 flex items-center gap-2"
+          title="Reset lesson and clear chat history"
         >
-          {chatMessages.length === 0 && (
-            <div className="text-center text-gray-400 py-8">
-              <p className="text-sm">Ask a question about {topic || 'this topic'} to get started!</p>
-            </div>
-          )}
-          {chatMessages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                  msg.role === 'user'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-800 border border-gray-200'
-                }`}
+          <RefreshCw className="h-3 w-3 md:h-4 md:w-4" />
+          <span className="hidden md:inline">Reset Lesson</span>
+        </button>
+      </div>
+
+      {/* Main Scrollable Board with Chat Cards */}
+      <div
+        ref={boardRef}
+        className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 space-y-4 md:space-y-6"
+        style={{ scrollbarWidth: 'thin' }}
+      >
+        <div className="max-w-4xl mx-auto">
+          <AnimatePresence initial={false}>
+            {messages.map((message, index) => (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className={`mb-4 md:mb-6 flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="whitespace-pre-wrap text-sm">{msg.text}</p>
-              </div>
-            </div>
-          ))}
-          {chatLoading && (
-            <div className="flex justify-start">
-              <div className="bg-gray-100 border border-gray-200 rounded-lg px-4 py-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                {/* AI Message Card (Left-aligned) */}
+                {message.role === 'assistant' && (
+                  <div className="max-w-full md:max-w-[85%] bg-white border-2 border-gray-200 rounded-2xl shadow-md hover:shadow-lg transition-shadow p-4 md:p-6">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br ${subject.gradient} flex items-center justify-center flex-shrink-0`}>
+                        <Bot className="h-4 w-4 md:h-5 md:w-5 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-sm md:text-base font-semibold text-gray-900">Titcha AI Tutor</h3>
+                          <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
+                        </div>
+                        <div className="text-sm md:text-base text-gray-700 leading-relaxed">
+                          {formatText(message.text)}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-sm text-gray-500 italic">Titcha is thinking...</span>
+                )}
+
+                {/* User Message Card (Right-aligned) */}
+                {message.role === 'user' && (
+                  <div className="max-w-full md:max-w-[75%] bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-md hover:shadow-lg transition-shadow p-4 md:p-5">
+                    <div className="flex items-start gap-3 justify-end">
+                      <div className="flex-1 min-w-0 text-right">
+                        <div className="flex items-center gap-2 mb-2 justify-end">
+                          <h3 className="text-sm md:text-base font-semibold text-white">You</h3>
+                        </div>
+                        <div className="text-sm md:text-base text-white leading-relaxed">
+                          {formatText(message.text)}
+                        </div>
+                      </div>
+                      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 md:h-5 md:w-5 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {/* Loading Indicator */}
+          {isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-start mb-6"
+            >
+              <div className="max-w-[85%] bg-white border-2 border-gray-200 rounded-2xl shadow-md p-6">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${subject.gradient} flex items-center justify-center animate-pulse`}>
+                    <Bot className="h-5 w-5 text-white" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                    <span className="text-sm text-gray-500 italic ml-2">Titcha is thinking...</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
+      </div>
 
-        {/* Input Bar */}
-        <div className="border-t border-gray-200 px-6 py-3">
-          <div className="max-w-4xl mx-auto flex gap-3">
+      {/* Bottom Fixed Input Bar */}
+      <div className="bg-white border-t-2 border-gray-200 shadow-2xl px-4 md:px-6 py-3 md:py-4 z-20">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-2 md:gap-3">
             <input
+              ref={inputRef}
               type="text"
               value={questionInput}
               onChange={(e) => setQuestionInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleAskQuestion()}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAskQuestion();
+                }
+              }}
               placeholder={`Ask about ${topic || 'this topic'}...`}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 text-sm"
-              disabled={chatLoading}
+              className="flex-1 px-3 md:px-4 py-2 md:py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm md:text-base transition-all"
+              disabled={isLoading}
             />
             <button
               onClick={handleAskQuestion}
-              disabled={!questionInput.trim() || chatLoading}
-              className="px-5 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              disabled={!questionInput.trim() || isLoading}
+              className={`px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                isLoading
+                  ? 'bg-gray-400 text-white'
+                  : `bg-gradient-to-r ${subject.gradient} text-white hover:shadow-lg transform hover:scale-105`
+              }`}
             >
-              Send
+              <Send className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden md:inline">Send</span>
             </button>
           </div>
+          <p className="text-xs text-gray-500 mt-2 text-center">
+            Press Enter to send • Shift+Enter for new line
+          </p>
         </div>
       </div>
-
-      {/* Checkpoint Modal */}
-      {showCheckpoint && checkpoint && (
-        <Checkpoint
-          questions={checkpoint}
-          onComplete={handleCheckpointComplete}
-          onClose={() => setShowCheckpoint(false)}
-        />
-      )}
     </div>
   );
 }
