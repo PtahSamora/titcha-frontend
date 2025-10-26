@@ -64,8 +64,45 @@ export async function POST(
       );
     }
 
-    // Find user to invite
-    const invitedUser = await findUserByEmail(userEmail);
+    // Find user to invite (check both Prisma and devdb)
+    let invitedUser = await findUserByEmail(userEmail);
+
+    // If not in devdb, check Prisma
+    if (!invitedUser && process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
+      try {
+        const { prisma } = await import('@/lib/prisma');
+        const prismaUser = await prisma.user.findUnique({
+          where: { email: userEmail },
+          select: { id: true, email: true, name: true, role: true },
+        });
+
+        if (prismaUser) {
+          // Sync Prisma user to devdb
+          const { readDB, writeDB } = await import('@/lib/devdb');
+          const db = await readDB();
+
+          const devUser = {
+            id: prismaUser.id,
+            email: prismaUser.email || '',
+            passwordHash: '',
+            displayName: prismaUser.name || prismaUser.email || 'User',
+            role: prismaUser.role.toLowerCase() as 'student' | 'teacher' | 'parent',
+            schoolId: undefined,
+            meta: {},
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          db.users.push(devUser);
+          await writeDB(db);
+          invitedUser = devUser;
+          log('Synced Prisma user to devdb for invite:', prismaUser.email);
+        }
+      } catch (prismaError) {
+        log('Prisma lookup failed, user not found:', userEmail);
+      }
+    }
+
     if (!invitedUser) {
       logError('User not found:', userEmail);
       return NextResponse.json(

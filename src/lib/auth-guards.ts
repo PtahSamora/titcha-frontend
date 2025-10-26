@@ -1,7 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { findUserById } from '@/lib/devdb';
+import { findUserById, findUserByEmail, readDB, writeDB } from '@/lib/devdb';
 import { NextRequest } from 'next/server';
 
 export interface AuthUser {
@@ -10,6 +10,40 @@ export interface AuthUser {
   email: string;
   displayName: string;
   schoolId?: string;
+}
+
+/**
+ * Sync Prisma user to devdb for study groups compatibility
+ */
+async function syncUserToDevDB(prismaUser: any): Promise<void> {
+  try {
+    const db = await readDB();
+
+    // Check if user already exists in devdb (by email)
+    const existingUser = db.users.find(u => u.email.toLowerCase() === prismaUser.email?.toLowerCase());
+
+    if (!existingUser) {
+      // Add user to devdb
+      const devUser = {
+        id: prismaUser.id,
+        email: prismaUser.email || '',
+        passwordHash: '', // Not needed since they're authenticated via Prisma
+        displayName: prismaUser.name || prismaUser.email || 'User',
+        role: prismaUser.role.toLowerCase() as 'student' | 'teacher' | 'parent',
+        schoolId: undefined,
+        meta: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      db.users.push(devUser);
+      await writeDB(db);
+      console.log('[Auth] Synced Prisma user to devdb:', prismaUser.email);
+    }
+  } catch (error) {
+    console.error('[Auth] Failed to sync user to devdb:', error);
+    // Don't throw - this is not critical for authentication
+  }
 }
 
 /**
@@ -39,6 +73,9 @@ export async function requireUser(req?: NextRequest): Promise<AuthUser> {
     });
 
     if (user) {
+      // Sync to devdb for study groups compatibility
+      await syncUserToDevDB(user);
+
       return {
         userId: user.id,
         role: user.role,
