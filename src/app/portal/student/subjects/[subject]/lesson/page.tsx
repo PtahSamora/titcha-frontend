@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { RefreshCw, Sparkles, User, Bot, Send } from 'lucide-react';
+import { RefreshCw, Sparkles, User, Bot, Send, Camera, Paperclip, MessageCircle, Pen, Eraser, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import { ReactSketchCanvas, ReactSketchCanvasRef } from 'react-sketch-canvas';
 
 // Types
 interface ChatMessage {
@@ -16,6 +17,8 @@ interface ChatMessage {
   text: string;
   timestamp: number;
 }
+
+type InputMode = 'chat' | 'write';
 
 const subjectData: Record<string, { name: string; icon: string; color: string; gradient: string }> = {
   math: {
@@ -50,8 +53,14 @@ export default function LessonBoardPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [questionInput, setQuestionInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [inputMode, setInputMode] = useState<InputMode>('chat');
+  const [drawingTool, setDrawingTool] = useState<'pen' | 'eraser'>('pen');
+
   const boardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<ReactSketchCanvasRef>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // localStorage key for this specific lesson
   const storageKey = `titcha-lesson-${subjectId}-${topic.replace(/\s+/g, '-')}`;
@@ -99,19 +108,19 @@ export default function LessonBoardPage() {
   }, [messages]);
 
   // Handle sending a question
-  const handleAskQuestion = async () => {
-    if (!questionInput.trim() || isLoading) return;
+  const handleAskQuestion = async (questionText?: string) => {
+    const question = questionText || questionInput;
+    if (!question.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      text: questionInput,
+      text: question,
       timestamp: Date.now(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    const question = questionInput;
-    setQuestionInput('');
+    if (!questionText) setQuestionInput('');
     setIsLoading(true);
 
     try {
@@ -152,6 +161,65 @@ export default function LessonBoardPage() {
       setIsLoading(false);
       inputRef.current?.focus();
     }
+  };
+
+  // Handle OCR from image
+  const handleOCR = async (imageBase64: string) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('http://localhost:3000/api/ocr-handwriting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageBase64 }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'OCR failed');
+      }
+
+      // Forward recognized text to AI tutor
+      if (data.text) {
+        await handleAskQuestion(data.text);
+      }
+    } catch (error: any) {
+      console.error('OCR Error:', error);
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}`,
+        role: 'assistant',
+        text: `Sorry, I couldn't read the handwriting: ${error.message || 'Please try again.'}`,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      setIsLoading(false);
+    }
+  };
+
+  // Handle canvas send
+  const handleCanvasSend = async () => {
+    if (!canvasRef.current || isLoading) return;
+
+    try {
+      const imageData = await canvasRef.current.exportImage('png');
+      await handleOCR(imageData);
+      canvasRef.current.clearCanvas();
+    } catch (error) {
+      console.error('Canvas export error:', error);
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      handleOCR(base64);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Reset lesson and clear history
@@ -309,38 +377,187 @@ export default function LessonBoardPage() {
       {/* Bottom Fixed Input Bar */}
       <div className="bg-white border-t-2 border-gray-200 shadow-2xl px-4 md:px-6 py-3 md:py-4 z-20">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-2 md:gap-3">
-            <input
-              ref={inputRef}
-              type="text"
-              value={questionInput}
-              onChange={(e) => setQuestionInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleAskQuestion();
-                }
-              }}
-              placeholder={`Ask about ${topic || 'this topic'}...`}
-              className="flex-1 px-3 md:px-4 py-2 md:py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm md:text-base transition-all"
-              disabled={isLoading}
-            />
-            <button
-              onClick={handleAskQuestion}
-              disabled={!questionInput.trim() || isLoading}
-              className={`px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
-                isLoading
-                  ? 'bg-gray-400 text-white'
-                  : `bg-gradient-to-r ${subject.gradient} text-white hover:shadow-lg transform hover:scale-105`
-              }`}
-            >
-              <Send className="h-4 w-4 md:h-5 md:w-5" />
-              <span className="hidden md:inline">Send</span>
-            </button>
+          {/* Mode Toggle */}
+          <div className="flex justify-center mb-3">
+            <div className="inline-flex items-center gap-2 bg-gray-100 rounded-full p-1">
+              <button
+                onClick={() => setInputMode('chat')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  inputMode === 'chat'
+                    ? 'bg-white text-gray-900 shadow-md'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Chat
+              </button>
+              <button
+                onClick={() => setInputMode('write')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  inputMode === 'write'
+                    ? 'bg-white text-gray-900 shadow-md'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Pen className="h-4 w-4" />
+                Write
+              </button>
+            </div>
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Press Enter to send • Shift+Enter for new line
-          </p>
+
+          {/* Chat Mode */}
+          {inputMode === 'chat' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center gap-2 md:gap-3">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={questionInput}
+                  onChange={(e) => setQuestionInput(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleAskQuestion();
+                    }
+                  }}
+                  placeholder={`Ask about ${topic || 'this topic'}...`}
+                  className="flex-1 px-3 md:px-4 py-2 md:py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm md:text-base transition-all"
+                  disabled={isLoading}
+                />
+
+                {/* Camera Button */}
+                <button
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={isLoading}
+                  className="p-2 md:p-3 rounded-xl border-2 border-gray-300 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Take photo"
+                >
+                  <Camera className="h-4 w-4 md:h-5 md:w-5 text-gray-600" />
+                </button>
+
+                {/* Upload Button */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading}
+                  className="p-2 md:p-3 rounded-xl border-2 border-gray-300 hover:border-gray-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Upload image"
+                >
+                  <Paperclip className="h-4 w-4 md:h-5 md:w-5 text-gray-600" />
+                </button>
+
+                {/* Send Button */}
+                <button
+                  onClick={() => handleAskQuestion()}
+                  disabled={!questionInput.trim() || isLoading}
+                  className={`px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                    isLoading
+                      ? 'bg-gray-400 text-white'
+                      : `bg-gradient-to-r ${subject.gradient} text-white hover:shadow-lg transform hover:scale-105`
+                  }`}
+                >
+                  <Send className="h-4 w-4 md:h-5 md:w-5" />
+                  <span className="hidden md:inline">Send</span>
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Press Enter to send • Shift+Enter for new line
+              </p>
+            </motion.div>
+          )}
+
+          {/* Write Mode */}
+          {inputMode === 'write' && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* Canvas */}
+              <div className="mb-3 bg-gray-50 border-2 border-gray-300 rounded-xl overflow-hidden">
+                <ReactSketchCanvas
+                  ref={canvasRef}
+                  strokeWidth={drawingTool === 'pen' ? 4 : 20}
+                  strokeColor={drawingTool === 'pen' ? '#000000' : '#FFFFFF'}
+                  canvasColor="#F9FAFB"
+                  height="200px"
+                  className="w-full"
+                />
+              </div>
+
+              {/* Canvas Controls */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setDrawingTool('pen')}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      drawingTool === 'pen'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    <Pen className="h-4 w-4" />
+                    Pen
+                  </button>
+                  <button
+                    onClick={() => setDrawingTool('eraser')}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      drawingTool === 'eraser'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    <Eraser className="h-4 w-4" />
+                    Eraser
+                  </button>
+                  <button
+                    onClick={() => canvasRef.current?.clearCanvas()}
+                    disabled={isLoading}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition-all disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Clear
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleCanvasSend}
+                  disabled={isLoading}
+                  className={`px-4 md:px-6 py-2 rounded-xl font-semibold text-sm md:text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                    isLoading
+                      ? 'bg-gray-400 text-white'
+                      : `bg-gradient-to-r ${subject.gradient} text-white hover:shadow-lg transform hover:scale-105`
+                  }`}
+                >
+                  <Send className="h-4 w-4 md:h-5 md:w-5" />
+                  Send
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Draw your equation or problem, then click Send
+              </p>
+            </motion.div>
+          )}
+
+          {/* Hidden File Inputs */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
         </div>
       </div>
     </div>

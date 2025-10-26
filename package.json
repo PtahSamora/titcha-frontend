@@ -46,6 +46,7 @@
     "react-dropzone": "^14.2.3",
     "react-katex": "^3.1.0",
     "react-markdown": "^10.1.0",
+    "react-sketch-canvas": "^6.2.0",
     "recharts": "^2.10.3",
     "rehype-katex": "^7.0.1",
     "remark-math": "^6.0.0",
