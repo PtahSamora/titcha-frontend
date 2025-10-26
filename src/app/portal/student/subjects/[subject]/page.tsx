@@ -1,8 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { Trash2, Clock } from 'lucide-react';
+import { useActiveLessons, formatTimeAgo, clearAllLessons } from '@/hooks/useActiveLessons';
 
 const subjectData: Record<string, { name: string; icon: string; color: string }> = {
   math: { name: 'Mathematics', icon: '📐', color: '#9333EA' },
@@ -17,6 +19,22 @@ export default function SubjectPage() {
   const subject = subjectData[subjectId] || subjectData.math;
 
   const [topicInput, setTopicInput] = useState('');
+  const { lessons, refresh } = useActiveLessons();
+
+  // Filter lessons for current subject
+  const activeLessons = lessons.filter(lesson => lesson.url.includes(`/subjects/${subjectId}/`));
+
+  // Refresh when component mounts
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const handleClearAllLessons = () => {
+    if (confirm('Clear all active lessons? Your progress will be saved.')) {
+      clearAllLessons();
+      refresh();
+    }
+  };
 
   const modes = [
     {
@@ -119,6 +137,51 @@ export default function SubjectPage() {
             </button>
           </div>
         </motion.div>
+
+        {/* Active Lessons */}
+        {activeLessons.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white rounded-2xl shadow-lg p-6 mb-8"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Clock className="h-5 w-5 text-purple-600" />
+                Active Lessons
+              </h2>
+              <button
+                onClick={handleClearAllLessons}
+                className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
+                title="Clear all active lessons"
+              >
+                <Trash2 className="h-3 w-3" />
+                End All
+              </button>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto py-2" style={{ scrollbarWidth: 'thin' }}>
+              {activeLessons.map((lesson) => (
+                <motion.div
+                  key={lesson.url}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => router.push(lesson.url)}
+                  className="flex-shrink-0 bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-xl px-4 py-3 hover:shadow-md cursor-pointer transition-all min-w-[200px]"
+                >
+                  <h3 className="font-semibold text-gray-900 text-sm mb-1 truncate">
+                    {lesson.topic}
+                  </h3>
+                  <p className="text-xs text-gray-600 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {formatTimeAgo(lesson.lastAccessed)}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Learning Modes */}
         <motion.div

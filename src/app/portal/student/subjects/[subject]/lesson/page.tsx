@@ -2,13 +2,14 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { RefreshCw, Sparkles, User, Bot, Send, Camera, Paperclip, MessageCircle, Pen, Eraser, Trash2 } from 'lucide-react';
+import { RefreshCw, Sparkles, User, Bot, Send, Camera, Paperclip, MessageCircle, Pen, Eraser, Trash2, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { ReactSketchCanvas, ReactSketchCanvasRef } from 'react-sketch-canvas';
+import { addLesson, updateLessonAccess, removeLesson } from '@/hooks/useActiveLessons';
 
 // Types
 interface ChatMessage {
@@ -100,6 +101,19 @@ export default function LessonBoardPage() {
     }
   }, [messages, storageKey]);
 
+  // Track active lesson on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && topic && subjectId) {
+      const lessonUrl = `/portal/student/subjects/${subjectId}/lesson?topic=${encodeURIComponent(topic)}`;
+      addLesson({
+        topic,
+        subject: subject.name,
+        url: lessonUrl,
+        lastAccessed: new Date().toISOString(),
+      });
+    }
+  }, [topic, subjectId, subject.name]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (boardRef.current) {
@@ -114,6 +128,10 @@ export default function LessonBoardPage() {
   const handleAskQuestion = async (questionText?: string) => {
     const question = questionText || questionInput;
     if (!question.trim() || isLoading) return;
+
+    // Update last accessed timestamp
+    const lessonUrl = `/portal/student/subjects/${subjectId}/lesson?topic=${encodeURIComponent(topic)}`;
+    updateLessonAccess(lessonUrl);
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -302,6 +320,15 @@ export default function LessonBoardPage() {
     }
   };
 
+  // End lesson and return to subject overview
+  const handleEndLesson = () => {
+    if (confirm('End this lesson? Your progress will be saved and you can return to it later.')) {
+      const lessonUrl = `/portal/student/subjects/${subjectId}/lesson?topic=${encodeURIComponent(topic)}`;
+      removeLesson(lessonUrl);
+      router.push(`/portal/student/subjects/${subjectId}`);
+    }
+  };
+
   // Render markdown with LaTeX math support
   const renderMarkdown = (text: string) => {
     // Normalize LaTeX delimiters: convert \(...\) to $...$ for inline math
@@ -344,14 +371,24 @@ export default function LessonBoardPage() {
           </div>
         </div>
 
-        <button
-          onClick={handleResetLesson}
-          className="px-3 md:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-xs md:text-sm font-medium text-gray-700 flex items-center gap-2"
-          title="Reset lesson and clear chat history"
-        >
-          <RefreshCw className="h-3 w-3 md:h-4 md:w-4" />
-          <span className="hidden md:inline">Reset Lesson</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleResetLesson}
+            className="px-3 md:px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors text-xs md:text-sm font-medium text-gray-700 flex items-center gap-2"
+            title="Reset lesson and clear chat history"
+          >
+            <RefreshCw className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden md:inline">Reset</span>
+          </button>
+          <button
+            onClick={handleEndLesson}
+            className="px-3 md:px-4 py-2 rounded-lg bg-red-100 hover:bg-red-200 transition-colors text-xs md:text-sm font-medium text-red-700 flex items-center gap-2"
+            title="End this lesson and return to subject overview"
+          >
+            <XCircle className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden md:inline">End Lesson</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Scrollable Board with Chat Cards */}
