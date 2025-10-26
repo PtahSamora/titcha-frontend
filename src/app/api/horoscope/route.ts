@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
+import { openai } from '@/lib/openai';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Horoscope API Endpoint
- * Fetches daily horoscope from Aztro API
+ * Weekly Vibe API Endpoint
+ * Generates motivational learning messages based on zodiac personality traits
  * GET /api/horoscope?sign=aries
  */
 export async function GET(req: Request) {
@@ -32,36 +33,73 @@ export async function GET(req: Request) {
       );
     }
 
-    // Fetch from Aztro API (free horoscope API)
-    const url = `https://aztro.sameerkumar.website/?sign=${sign.toLowerCase()}&day=today`;
+    // Try to fetch from Aztro API first
+    let baseDescription = '';
+    try {
+      const url = `https://aztro.sameerkumar.website/?sign=${sign.toLowerCase()}&day=today`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+      });
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch horoscope from external API');
+      if (response.ok) {
+        const data = await response.json();
+        baseDescription = data.description;
+      }
+    } catch (fetchError) {
+      console.log('[Horoscope] Aztro API unavailable, generating from personality traits');
     }
 
-    const data = await response.json();
+    // Transform into motivational learning message using AI
+    const prompt = `
+Rewrite this weekly insight as a short, motivational learning vibe for a student:
+"${baseDescription || 'This week brings opportunities for growth and focus.'}"
+
+Requirements:
+- Sound like a supportive coach giving personality-based study advice
+- 1-2 sentences maximum
+- Focus on learning, consistency, and personal growth
+- NO mention of zodiac, astrology, or horoscopes
+- Make it feel personal and encouraging
+- Use words like "focused", "curious", "creative", "determined", "consistent"
+
+Example outputs:
+- "You're feeling focused and intuitive this week — a great time to tackle challenging topics and stay consistent with your goals."
+- "Your creative energy is high right now. Use it to explore new concepts and make learning fun!"
+- "This week calls for determination. Small, steady steps will lead to big progress in your studies."
+    `.trim();
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a supportive learning coach who provides brief, motivational messages to students.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.8,
+      max_tokens: 100,
+    });
+
+    const transformed = completion.choices[0].message?.content?.trim() || '';
 
     return NextResponse.json({
-      description: data.description || 'Your stars are aligned for a great week ahead!',
-      compatibility: data.compatibility,
-      mood: data.mood,
-      color: data.color,
-      luckyNumber: data.lucky_number,
-      luckyTime: data.lucky_time,
+      description: transformed || 'Stay curious and confident this week — small steps lead to big growth! 🌟',
     });
   } catch (error: any) {
-    console.error('[Horoscope Error]', error);
+    console.error('[Weekly Vibe Error]', error);
 
-    // Return a fallback horoscope message
+    // Return a fallback motivational message
+    const fallbackMessages = [
+      'Stay curious and confident this week — small steps lead to big growth! 🌟',
+      'This week is perfect for diving into new challenges. Keep your momentum going! 💪',
+      'You have great focus energy right now. Use it to master the topics that matter most! 🎯',
+      'Your determination shines this week. Consistency will unlock amazing progress! ✨',
+    ];
+
+    const randomMessage = fallbackMessages[Math.floor(Math.random() * fallbackMessages.length)];
+
     return NextResponse.json({
-      description: 'The stars suggest focusing on your goals this week. Stay positive and embrace new learning opportunities!',
+      description: randomMessage,
     });
   }
 }

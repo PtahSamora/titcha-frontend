@@ -35,6 +35,10 @@ export default function StudentDashboard() {
   const [photo, setPhoto] = useState('');
   const [profile, setProfile] = useState<StudentProfile | null>(null);
 
+  // Feedback animation state
+  const [feedbackGiven, setFeedbackGiven] = useState(false);
+  const [feedbackEmoji, setFeedbackEmoji] = useState<string | null>(null);
+
   // Load existing profile on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -48,6 +52,16 @@ export default function StudentDashboard() {
       }
     }
   }, []);
+
+  // Pre-fill modal with existing profile data when opened
+  useEffect(() => {
+    if (profile && showProfileModal) {
+      setGrade(profile.grade || '');
+      setDob(profile.dob || '');
+      setPersonality(profile.personality || '');
+      setPhoto(profile.photo || '');
+    }
+  }, [showProfileModal, profile]);
 
   useEffect(() => {
     // Only redirect after session fully resolves
@@ -114,13 +128,16 @@ export default function StudentDashboard() {
     const zodiacSign = getZodiacSign(dob);
     const horoscopeText = await fetchWeeklyHoroscope(zodiacSign);
 
+    // Merge with existing profile data
+    const existing = JSON.parse(localStorage.getItem('titcha_student_profile') || '{}');
     const profileData: StudentProfile = {
+      ...existing,
       name: studentName,
       grade,
       dob,
       zodiac: zodiacSign,
       personality,
-      photo: photo || undefined,
+      photo: photo || existing.photo || undefined,
       horoscope: horoscopeText,
       lastUpdated: new Date().toISOString(),
     };
@@ -128,18 +145,21 @@ export default function StudentDashboard() {
     localStorage.setItem('titcha_student_profile', JSON.stringify(profileData));
     setProfile(profileData);
     setShowProfileModal(false);
+    setFeedbackGiven(false); // Reset feedback for new horoscope
 
-    // Reset form
-    setGrade('');
-    setDob('');
-    setPersonality('');
-    setPhoto('');
-
-    alert(`🎉 Thanks ${studentName}! We've learned that you're a ${zodiacSign} — your AI tutor will now adapt to your style!`);
+    alert(`🎉 Thanks ${studentName}! Your profile has been updated. Your AI tutor will adapt to your style!`);
   };
 
-  // Handle horoscope feedback
+  // Handle horoscope feedback with animation
   const handleFeedback = (liked: boolean) => {
+    setFeedbackGiven(true);
+    setFeedbackEmoji(liked ? '👍' : '👎');
+
+    // Animate emoji for 1.5s then disappear
+    setTimeout(() => {
+      setFeedbackEmoji(null);
+    }, 1500);
+
     const feedbackLog = JSON.parse(localStorage.getItem('titcha_personality_feedback') || '[]');
     feedbackLog.push({
       date: new Date().toISOString(),
@@ -147,7 +167,6 @@ export default function StudentDashboard() {
       liked,
     });
     localStorage.setItem('titcha_personality_feedback', JSON.stringify(feedbackLog));
-    alert(liked ? '👍 Thanks for the feedback!' : '👎 We will improve our suggestions!');
   };
 
   return (
@@ -194,7 +213,7 @@ export default function StudentDashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Card */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 mb-8 text-white">
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-8 mb-8 text-white shadow-xl">
           <div className="flex items-center gap-3 mb-2">
             <GraduationCap className="h-8 w-8" />
             <h2 className="text-3xl font-bold">Welcome, {profile?.name || user.name}!</h2>
@@ -202,27 +221,45 @@ export default function StudentDashboard() {
           <p className="text-purple-100 text-lg">Grade: {profile?.grade || userGrade}</p>
 
           {profile?.horoscope ? (
-            <div className="mt-4 p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
-              <p className="font-medium text-white mb-2">
-                ✨ This week's vibe for you ({getZodiacEmoji(profile.zodiac)} {profile.zodiac}):
-              </p>
-              <p className="text-purple-100 text-sm mb-3">{profile.horoscope}</p>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => handleFeedback(true)}
-                  className="text-white hover:text-green-300 transition text-xl"
-                  title="Helpful horoscope"
-                >
-                  👍
-                </button>
-                <button
-                  onClick={() => handleFeedback(false)}
-                  className="text-white hover:text-red-300 transition text-xl"
-                  title="Not helpful"
-                >
-                  👎
-                </button>
+            <div className="mt-4 p-4 bg-gradient-to-r from-purple-50/20 to-indigo-50/20 backdrop-blur-sm border border-white/30 rounded-lg shadow-md">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xl">✨</span>
+                <p className="font-semibold text-white">This week's vibe for you</p>
               </div>
+
+              <p className="text-purple-50 leading-relaxed text-sm mb-3">{profile.horoscope}</p>
+
+              {!feedbackGiven ? (
+                <div className="flex justify-center gap-4 mt-3">
+                  <button
+                    onClick={() => handleFeedback(true)}
+                    className="text-white hover:text-green-300 text-xl transition-transform transform hover:scale-125 active:scale-95"
+                    title="This resonates with me"
+                  >
+                    👍
+                  </button>
+                  <button
+                    onClick={() => handleFeedback(false)}
+                    className="text-white hover:text-red-300 text-xl transition-transform transform hover:scale-125 active:scale-95"
+                    title="Not quite right"
+                  >
+                    👎
+                  </button>
+                </div>
+              ) : feedbackEmoji ? (
+                <div className="flex justify-center mt-3">
+                  <span
+                    className="text-4xl animate-bounce"
+                    style={{ animationDuration: '0.8s' }}
+                  >
+                    {feedbackEmoji}
+                  </span>
+                </div>
+              ) : (
+                <div className="text-center mt-3">
+                  <p className="text-purple-100 text-sm italic">Thanks for your feedback! 💫</p>
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-purple-100 mt-2">Ready to continue your learning journey?</p>
