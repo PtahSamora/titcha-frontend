@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, CheckCircle, XCircle, Award, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Award, Loader2, Clock } from 'lucide-react';
 import { getActiveLessons, type ActiveLesson } from '@/hooks/useActiveLessons';
+import { addQuizMerits } from '@/lib/merits';
 
 const subjectData: Record<string, { name: string; icon: string; color: string }> = {
   math: { name: 'Mathematics', icon: '📐', color: '#9333EA' },
@@ -50,6 +51,15 @@ export default function QuizPage() {
   const [error, setError] = useState('');
   const [results, setResults] = useState<QuizResults | null>(null);
 
+  // Timer state
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+  // Deferred results state
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [quizSessionId, setQuizSessionId] = useState<string | null>(null);
+
   // Load active lessons on mount
   useEffect(() => {
     const lessons = getActiveLessons();
@@ -57,12 +67,50 @@ export default function QuizPage() {
     setActiveLessons(filtered);
   }, [subjectId]);
 
+  // Timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isTimerRunning) {
+      interval = setInterval(() => setElapsedTime(prev => prev + 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning]);
+
+  // Countdown effect for deferred results
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setInterval(() => setCountdown(prev => prev - 1), 1000);
+      return () => clearInterval(timer);
+    }
+  }, [countdown]);
+
+  // Fetch results when countdown reaches 0
+  useEffect(() => {
+    if (countdown === 0 && quizSubmitted && quizSessionId) {
+      fetchQuizResults();
+    }
+  }, [countdown, quizSubmitted, quizSessionId]);
+
   const toggleTopic = (topic: string) => {
     if (selectedTopics.includes(topic)) {
       setSelectedTopics(selectedTopics.filter(t => t !== topic));
     } else {
       setSelectedTopics([...selectedTopics, topic]);
     }
+  };
+
+  // Format timer display (mm:ss)
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  // Format countdown display (mm:ss)
+  const formatCountdown = (sec: number) => {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
   };
 
   const generateQuiz = async () => {
@@ -97,6 +145,10 @@ export default function QuizPage() {
 
       setQuestions(data.questions);
       setAnswers(new Array(data.questions.length).fill(null));
+
+      // Start timer
+      setElapsedTime(0);
+      setIsTimerRunning(true);
     } catch (error: any) {
       console.error('Error generating quiz:', error);
       setError(error.message || 'Failed to generate quiz. Please try again.');
@@ -114,6 +166,7 @@ export default function QuizPage() {
   const submitQuiz = async () => {
     setIsSubmitting(true);
     setError('');
+    setIsTimerRunning(false); // Stop timer
 
     try {
       const res = await fetch('/api/grade-quiz', {
@@ -123,26 +176,61 @@ export default function QuizPage() {
           subject: subject.name,
           questions,
           answers,
+          elapsedTime, // Include time taken
         }),
       });
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to grade quiz');
+        throw new Error(errorData.error || 'Failed to submit quiz');
+      }
+
+      const data = await res.json();
+
+      // Set quiz session ID for later retrieval
+      setQuizSessionId(data.sessionId);
+
+      // Show waiting screen with 15-minute countdown
+      setQuizSubmitted(true);
+      setCountdown(900); // 15 minutes = 900 seconds
+    } catch (error: any) {
+      console.error('Error submitting quiz:', error);
+      setError(error.message || 'Failed to submit quiz. Please try again.');
+      setIsTimerRunning(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Fetch quiz results after countdown
+  const fetchQuizResults = async () => {
+    try {
+      const res = await fetch('/api/quiz-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: quizSessionId,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to retrieve quiz results');
       }
 
       const result = await res.json();
       setResults(result);
+
+      // Add merits based on score
+      addQuizMerits(result.totalScore, subject.name);
 
       // Scroll to results
       setTimeout(() => {
         document.getElementById('quiz-results')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     } catch (error: any) {
-      console.error('Error grading quiz:', error);
-      setError(error.message || 'Failed to grade quiz. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error fetching quiz results:', error);
+      setError(error.message || 'Failed to retrieve quiz results. Please try again.');
     }
   };
 
@@ -152,6 +240,11 @@ export default function QuizPage() {
     setResults(null);
     setSelectedTopics([]);
     setError('');
+    setElapsedTime(0);
+    setIsTimerRunning(false);
+    setQuizSubmitted(false);
+    setCountdown(0);
+    setQuizSessionId(null);
   };
 
   const getGradeColor = (percentage: number) => {
@@ -273,7 +366,7 @@ export default function QuizPage() {
         )}
 
         {/* Quiz Questions */}
-        {questions.length > 0 && !results && (
+        {questions.length > 0 && !results && !quizSubmitted && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -281,10 +374,18 @@ export default function QuizPage() {
             className="space-y-6"
           >
             <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
-                Quiz: {selectedTopics.join(', ')}
-              </h2>
-              <p className="text-gray-600 text-sm mb-4">
+              <div className="flex justify-between items-start mb-2">
+                <h2 className="text-xl font-bold text-gray-900">
+                  Quiz: {selectedTopics.join(', ')}
+                </h2>
+                {isTimerRunning && (
+                  <div className="flex items-center gap-2 text-purple-600 font-semibold">
+                    <Clock className="h-5 w-5" />
+                    <span className="text-lg">{formatTime(elapsedTime)}</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-gray-600 text-sm">
                 {questions.length} questions • Answer all questions and submit when ready
               </p>
             </div>
@@ -366,6 +467,28 @@ export default function QuizPage() {
               <p className="text-center text-sm text-gray-600 mt-2">
                 Make sure you've answered all questions before submitting
               </p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Waiting Screen - 15 Minute Countdown */}
+        {quizSubmitted && countdown > 0 && !results && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-xl p-12 text-center"
+          >
+            <div className="flex items-center justify-center mb-6">
+              <div className="w-20 h-20 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">⏳ Your Quiz is Being Evaluated</h2>
+            <p className="text-lg text-gray-600 mb-6">
+              Please wait while we carefully grade your answers.<br />
+              Results will appear in <span className="font-bold text-purple-600">{formatCountdown(countdown)}</span>
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+              <p className="font-medium mb-1">Why the wait?</p>
+              <p>We're using AI to provide detailed feedback on your open-ended answers and ensure accurate grading.</p>
             </div>
           </motion.div>
         )}
