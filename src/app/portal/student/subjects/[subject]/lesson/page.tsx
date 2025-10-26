@@ -55,6 +55,8 @@ export default function LessonBoardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [inputMode, setInputMode] = useState<InputMode>('chat');
   const [drawingTool, setDrawingTool] = useState<'pen' | 'eraser'>('pen');
+  const [writeNoteInput, setWriteNoteInput] = useState('');
+  const [hasDrawing, setHasDrawing] = useState(false);
 
   const boardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -163,14 +165,17 @@ export default function LessonBoardPage() {
     }
   };
 
-  // Handle OCR from image
-  const handleOCR = async (imageBase64: string) => {
+  // Handle OCR from image (for camera/upload)
+  const handleOCR = async (imageBase64: string, userText?: string) => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/ocr-handwriting', {
+      const res = await fetch('/api/ocr-handwriting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: imageBase64 }),
+        body: JSON.stringify({
+          image_base64: imageBase64,
+          user_text: userText || ''
+        }),
       });
 
       const data = await res.json();
@@ -179,9 +184,19 @@ export default function LessonBoardPage() {
         throw new Error(data.error || 'OCR failed');
       }
 
-      // Forward recognized text to AI tutor
-      if (data.text) {
-        await handleAskQuestion(data.text);
+      // Combine user text and recognized text
+      let fullPrompt = '';
+      if (userText && data.text) {
+        fullPrompt = `${userText}\n\nHere is my handwritten equation:\n${data.text}`;
+      } else if (userText) {
+        fullPrompt = userText;
+      } else if (data.text) {
+        fullPrompt = data.text;
+      }
+
+      // Forward to AI tutor
+      if (fullPrompt) {
+        await handleAskQuestion(fullPrompt);
       }
     } catch (error: any) {
       console.error('OCR Error:', error);
@@ -196,14 +211,27 @@ export default function LessonBoardPage() {
     }
   };
 
-  // Handle canvas send
+  // Handle canvas send (Write Mode)
   const handleCanvasSend = async () => {
     if (!canvasRef.current || isLoading) return;
+    if (!hasDrawing && !writeNoteInput.trim()) return;
 
     try {
-      const imageData = await canvasRef.current.exportImage('png');
-      await handleOCR(imageData);
-      canvasRef.current.clearCanvas();
+      let imageData = '';
+
+      // Only export canvas if there's a drawing
+      if (hasDrawing) {
+        imageData = await canvasRef.current.exportImage('png');
+      }
+
+      // Send with optional user text
+      if (hasDrawing) {
+        await handleOCR(imageData, writeNoteInput.trim());
+        canvasRef.current.clearCanvas();
+        setHasDrawing(false);
+      }
+
+      setWriteNoteInput('');
     } catch (error) {
       console.error('Canvas export error:', error);
     }
@@ -485,6 +513,19 @@ export default function LessonBoardPage() {
                   canvasColor="#F9FAFB"
                   height="200px"
                   className="w-full"
+                  onChange={() => setHasDrawing(true)}
+                />
+              </div>
+
+              {/* Text Input Below Canvas */}
+              <div className="mb-3">
+                <input
+                  type="text"
+                  value={writeNoteInput}
+                  onChange={(e) => setWriteNoteInput(e.target.value)}
+                  placeholder="Type your question or note…"
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-sm transition-all"
+                  disabled={isLoading}
                 />
               </div>
 
@@ -514,7 +555,10 @@ export default function LessonBoardPage() {
                     Eraser
                   </button>
                   <button
-                    onClick={() => canvasRef.current?.clearCanvas()}
+                    onClick={() => {
+                      canvasRef.current?.clearCanvas();
+                      setHasDrawing(false);
+                    }}
                     disabled={isLoading}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 text-sm font-medium transition-all disabled:opacity-50"
                   >
@@ -525,9 +569,9 @@ export default function LessonBoardPage() {
 
                 <button
                   onClick={handleCanvasSend}
-                  disabled={isLoading}
+                  disabled={isLoading || !hasDrawing}
                   className={`px-4 md:px-6 py-2 rounded-xl font-semibold text-sm md:text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
-                    isLoading
+                    isLoading || !hasDrawing
                       ? 'bg-gray-400 text-white'
                       : `bg-gradient-to-r ${subject.gradient} text-white hover:shadow-lg transform hover:scale-105`
                   }`}
@@ -537,7 +581,7 @@ export default function LessonBoardPage() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-2 text-center">
-                Draw your equation or problem, then click Send
+                Draw your equation, add optional notes, then click Send
               </p>
             </motion.div>
           )}
