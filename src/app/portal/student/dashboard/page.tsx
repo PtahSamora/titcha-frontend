@@ -2,18 +2,49 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Upload, TrendingUp, GraduationCap, LogOut } from 'lucide-react';
+import { BookOpen, Upload, TrendingUp, GraduationCap, LogOut, Sparkles, X } from 'lucide-react';
 import Link from 'next/link';
 import RoleBadge from '@/components/ui/RoleBadge';
 import ButtonGradient from '@/components/ui/ButtonGradient';
 import { FriendsBar } from '@/components/student/FriendsBar';
 import { DMTray } from '@/components/student/DMTray';
 import { GroupsPanel } from '@/components/student/GroupsPanel';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { getZodiacSign, getZodiacEmoji } from '@/lib/zodiac';
+
+interface StudentProfile {
+  name: string;
+  grade: string;
+  dob: string;
+  zodiac: string;
+  personality: string;
+  createdAt: string;
+}
 
 export default function StudentDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  // Personalization modal state
+  const [showModal, setShowModal] = useState(false);
+  const [grade, setGrade] = useState('');
+  const [dob, setDob] = useState('');
+  const [personality, setPersonality] = useState('');
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
+
+  // Load existing profile on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('titcha_student_profile');
+      if (stored) {
+        try {
+          setStudentProfile(JSON.parse(stored));
+        } catch (error) {
+          console.error('Error loading student profile:', error);
+        }
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // Only redirect after session fully resolves
@@ -43,7 +74,37 @@ export default function StudentDashboard() {
   }
 
   const user = session.user;
-  const grade = user.meta?.grade || 'Not specified';
+  const userGrade = user.meta?.grade || 'Not specified';
+  const studentName = user.name || 'Student';
+
+  // Handle profile submission
+  const handleSubmit = () => {
+    if (!grade || !dob || !personality) {
+      alert('Please fill in all fields before submitting.');
+      return;
+    }
+
+    const zodiacSign = getZodiacSign(dob);
+    const profile: StudentProfile = {
+      name: studentName,
+      grade,
+      dob,
+      zodiac: zodiacSign,
+      personality,
+      createdAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem('titcha_student_profile', JSON.stringify(profile));
+    setStudentProfile(profile);
+    setShowModal(false);
+
+    // Reset form
+    setGrade('');
+    setDob('');
+    setPersonality('');
+
+    alert(`🎉 Thanks ${studentName}! We've learned that you're a ${zodiacSign} — your AI tutor will now adapt to your style!`);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-brand">
@@ -85,7 +146,7 @@ export default function StudentDashboard() {
             <GraduationCap className="h-8 w-8" />
             <h2 className="text-3xl font-bold">Welcome, {user.name}!</h2>
           </div>
-          <p className="text-purple-100 text-lg">Grade: {grade}</p>
+          <p className="text-purple-100 text-lg">Grade: {userGrade}</p>
           <p className="text-purple-100 mt-2">Ready to continue your learning journey?</p>
         </div>
 
@@ -93,6 +154,30 @@ export default function StudentDashboard() {
         <div className="mb-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-6">Your Subjects</h3>
           <div className="grid md:grid-cols-3 gap-6">
+            {/* Get to Know You Card */}
+            <div
+              className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all hover:scale-105"
+              onClick={() => setShowModal(true)}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center text-2xl shadow-md">
+                  <Sparkles className="h-8 w-8 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-xl font-bold">Get to Know {studentName}</h4>
+                </div>
+              </div>
+              <p className="text-purple-100 text-sm">
+                Help us personalize your learning journey!
+              </p>
+              {studentProfile && (
+                <div className="mt-4 pt-4 border-t border-white/20">
+                  <p className="text-xs text-purple-100">
+                    {studentProfile.grade} • {getZodiacEmoji(studentProfile.zodiac)} {studentProfile.zodiac}
+                  </p>
+                </div>
+              )}
+            </div>
             {/* Mathematics */}
             <Link href="/portal/student/subjects/math">
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all hover:scale-105 cursor-pointer">
@@ -183,6 +268,106 @@ export default function StudentDashboard() {
 
       {/* DM Tray - Floating chat windows */}
       <DMTray />
+
+      {/* Personalization Modal */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full space-y-6 max-h-[90vh] overflow-y-auto">
+            {/* Close button */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
+            >
+              <X className="h-6 w-6" />
+            </button>
+
+            {/* Header */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="h-8 w-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">🌟 Let's Get to Know You!</h2>
+              <p className="text-gray-600 text-sm mt-2">
+                This will help your AI tutor understand how to explain things just for you.
+              </p>
+            </div>
+
+            {/* Step 1: Grade */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">Which grade are you in?</label>
+              <select
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                className="border border-gray-300 rounded-lg w-full px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              >
+                <option value="">Select grade</option>
+                {['Grade 7', 'Grade 8', 'Grade 9', 'Grade 10', 'Grade 11', 'Grade 12'].map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Step 2: Date of Birth */}
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">When is your birthday?</label>
+              <input
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                className="border border-gray-300 rounded-lg w-full px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              />
+            </div>
+
+            {/* Step 3: Quick Personality Questions */}
+            <div>
+              <p className="font-medium text-gray-700 mb-3">Pick what sounds most like you:</p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => setPersonality('curious')}
+                  className={`w-full border rounded-lg py-3 px-4 text-left transition ${
+                    personality === 'curious'
+                      ? 'bg-purple-100 border-purple-500 text-purple-900 font-medium'
+                      : 'border-gray-300 hover:border-purple-300 hover:bg-purple-50'
+                  }`}
+                >
+                  🔍 I love asking questions and exploring new ideas
+                </button>
+                <button
+                  onClick={() => setPersonality('creative')}
+                  className={`w-full border rounded-lg py-3 px-4 text-left transition ${
+                    personality === 'creative'
+                      ? 'bg-purple-100 border-purple-500 text-purple-900 font-medium'
+                      : 'border-gray-300 hover:border-purple-300 hover:bg-purple-50'
+                  }`}
+                >
+                  🎨 I enjoy creating stories, drawings, or projects
+                </button>
+                <button
+                  onClick={() => setPersonality('logical')}
+                  className={`w-full border rounded-lg py-3 px-4 text-left transition ${
+                    personality === 'logical'
+                      ? 'bg-purple-100 border-purple-500 text-purple-900 font-medium'
+                      : 'border-gray-300 hover:border-purple-300 hover:bg-purple-50'
+                  }`}
+                >
+                  🧠 I like solving problems and figuring out patterns
+                </button>
+              </div>
+            </div>
+
+            {/* Step 4: Submit */}
+            <button
+              disabled={!grade || !dob || !personality}
+              onClick={handleSubmit}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white w-full py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg hover:shadow-xl"
+            >
+              Save My Profile
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
