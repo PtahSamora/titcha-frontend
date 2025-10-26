@@ -20,6 +20,9 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Try Prisma database first (if DATABASE_URL is configured)
+        let prismaUserFound = false;
+        let prismaError: Error | null = null;
+
         if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
           try {
             console.log('[Auth] Attempting Prisma authentication for:', credentials.email);
@@ -29,41 +32,42 @@ export const authOptions: NextAuthOptions = {
 
             console.log('[Auth] Prisma user lookup result:', user ? 'Found' : 'Not found');
 
-            if (!user) {
-              throw new Error('No account found with this email');
+            if (user) {
+              prismaUserFound = true;
+
+              if (!user.password) {
+                throw new Error('Password not set for this account');
+              }
+
+              const isPasswordValid = await compare(credentials.password, user.password);
+              console.log('[Auth] Password validation:', isPasswordValid ? 'Valid' : 'Invalid');
+
+              if (!isPasswordValid) {
+                throw new Error('Incorrect password');
+              }
+
+              console.log('[Auth] Authentication successful via Prisma');
+              return {
+                id: user.id,
+                email: user.email || '',
+                name: user.name || '',
+                role: user.role,
+                image: user.image,
+              };
             }
-
-            if (!user.password) {
-              throw new Error('Password not set for this account');
-            }
-
-            const isPasswordValid = await compare(credentials.password, user.password);
-            console.log('[Auth] Password validation:', isPasswordValid ? 'Valid' : 'Invalid');
-
-            if (!isPasswordValid) {
-              throw new Error('Incorrect password');
-            }
-
-            console.log('[Auth] Authentication successful via Prisma');
-            return {
-              id: user.id,
-              email: user.email || '',
-              name: user.name || '',
-              role: user.role,
-              image: user.image,
-            };
           } catch (error: any) {
             console.error('[Auth] Prisma authentication error:', error.message, error.code);
 
-            // If it's a known error, rethrow it
-            if (error.message.includes('No account found') ||
-                error.message.includes('Incorrect password') ||
-                error.message.includes('Password not set')) {
+            // If user was found in Prisma but password is wrong, don't fall back to devdb
+            if (prismaUserFound) {
               throw error;
             }
 
+            // Store error for later if devdb also fails
+            prismaError = error;
+
             // If it's a database connection error, fall through to devdb
-            console.log('[Auth] Prisma connection failed, falling back to devdb');
+            console.log('[Auth] Prisma user not found or connection failed, trying devdb...');
           }
         }
 
@@ -74,29 +78,41 @@ export const authOptions: NextAuthOptions = {
           console.log('[Auth] Devdb user lookup result:', devUser ? 'Found' : 'Not found');
 
           if (!devUser) {
-            throw new Error('No account found with this email');
+            // If user wasn't found in Prisma either, show clear error
+            if (!prismaUserFound) {
+              throw new Error('No account found with this email');
+            }
+            // If Prisma had an error, rethrow that
+            if (prismaError) {
+              throw prismaError;
+            }
           }
 
-          const isPasswordValid = await compare(credentials.password, devUser.passwordHash);
-          console.log('[Auth] Devdb password validation:', isPasswordValid ? 'Valid' : 'Invalid');
+          if (devUser) {
+            const isPasswordValid = await compare(credentials.password, devUser.passwordHash);
+            console.log('[Auth] Devdb password validation:', isPasswordValid ? 'Valid' : 'Invalid');
 
-          if (!isPasswordValid) {
-            throw new Error('Incorrect password');
+            if (!isPasswordValid) {
+              throw new Error('Incorrect password');
+            }
+
+            console.log('[Auth] Authentication successful via devdb');
+            return {
+              id: devUser.id,
+              email: devUser.email,
+              name: devUser.displayName,
+              role: devUser.role,
+              schoolId: devUser.schoolId,
+              meta: devUser.meta,
+            };
           }
-
-          console.log('[Auth] Authentication successful via devdb');
-          return {
-            id: devUser.id,
-            email: devUser.email,
-            name: devUser.displayName,
-            role: devUser.role,
-            schoolId: devUser.schoolId,
-            meta: devUser.meta,
-          };
         } catch (error: any) {
           console.error('[Auth] Final authentication error:', error.message);
           throw error;
         }
+
+        // This should never be reached, but just in case
+        throw new Error('Authentication failed');
       },
     }),
   ],
