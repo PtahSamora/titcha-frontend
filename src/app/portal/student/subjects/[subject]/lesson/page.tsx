@@ -170,12 +170,17 @@ export default function LessonBoardPage() {
 
   // Render markdown with LaTeX math support
   const renderMarkdown = (text: string) => {
+    // Normalize LaTeX delimiters: convert \(...\) to $...$ for inline math
+    const normalizedText = text
+      .replace(/\\\(/g, '$')
+      .replace(/\\\)/g, '$');
+
     return (
       <ReactMarkdown
-        remarkPlugins={[remarkMath]}
+        remarkPlugins={[[remarkMath, { singleDollarTextMath: true }]]}
         rehypePlugins={[rehypeKatex]}
       >
-        {text}
+        {normalizedText}
       </ReactMarkdown>
     );
   };
