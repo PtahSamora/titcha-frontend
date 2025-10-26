@@ -201,6 +201,8 @@ export default function SubjectPage() {
                   handleStartLesson();
                 } else if (mode.id === 'practice') {
                   router.push(`/portal/student/subjects/${subjectId}/practice`);
+                } else if (mode.id === 'checkpoint') {
+                  router.push(`/portal/student/subjects/${subjectId}/quiz`);
                 }
               }}
               className={`bg-white rounded-2xl shadow-lg p-6 cursor-pointer transition-shadow hover:shadow-xl ${
