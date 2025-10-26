@@ -199,6 +199,8 @@ export default function SubjectPage() {
               onClick={() => {
                 if (mode.id === 'lesson' && topicInput.trim()) {
                   handleStartLesson();
+                } else if (mode.id === 'practice') {
+                  router.push(`/portal/student/subjects/${subjectId}/practice`);
                 }
               }}
               className={`bg-white rounded-2xl shadow-lg p-6 cursor-pointer transition-shadow hover:shadow-xl ${
