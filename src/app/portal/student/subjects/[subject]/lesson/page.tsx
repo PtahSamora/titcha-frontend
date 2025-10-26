@@ -57,6 +57,7 @@ export default function LessonBoardPage() {
   const [drawingTool, setDrawingTool] = useState<'pen' | 'eraser'>('pen');
   const [writeNoteInput, setWriteNoteInput] = useState('');
   const [hasDrawing, setHasDrawing] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState<'idle' | 'reading' | 'success' | 'error'>('idle');
 
   const boardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -168,6 +169,17 @@ export default function LessonBoardPage() {
   // Handle OCR from image (for camera/upload)
   const handleOCR = async (imageBase64: string, userText?: string) => {
     setIsLoading(true);
+    setOcrStatus('reading');
+
+    // Add "Reading handwriting..." message
+    const readingMessage: ChatMessage = {
+      id: `ocr-reading-${Date.now()}`,
+      role: 'assistant',
+      text: '📖 Reading your handwriting...',
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, readingMessage]);
+
     try {
       const res = await fetch('/api/ocr-handwriting', {
         method: 'POST',
@@ -178,11 +190,29 @@ export default function LessonBoardPage() {
         }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
-        throw new Error(data.error || 'OCR failed');
+        throw new Error(`HTTP ${res.status}`);
       }
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+
+      if (!data || !data.text) {
+        throw new Error('Empty OCR result');
+      }
+
+      // Remove "Reading..." message and add success message
+      setMessages((prev) => prev.filter(msg => msg.id !== readingMessage.id));
+
+      const recognizedMessage: ChatMessage = {
+        id: `ocr-success-${Date.now()}`,
+        role: 'assistant',
+        text: `Recognized handwriting: *${data.text}*`,
+        timestamp: Date.now(),
+      };
+      setMessages((prev) => [...prev, recognizedMessage]);
+
+      setOcrStatus('success');
 
       // Combine user text and recognized text
       let fullPrompt = '';
@@ -200,20 +230,26 @@ export default function LessonBoardPage() {
       }
     } catch (error: any) {
       console.error('OCR Error:', error);
+
+      // Remove "Reading..." message and add error message
+      setMessages((prev) => prev.filter(msg => msg.id !== readingMessage.id));
+
       const errorMessage: ChatMessage = {
-        id: `error-${Date.now()}`,
+        id: `ocr-error-${Date.now()}`,
         role: 'assistant',
-        text: `Sorry, I couldn't read the handwriting: ${error.message || 'Please try again.'}`,
+        text: `Sorry, I couldn't read the handwriting. Please try again.`,
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+
+      setOcrStatus('error');
       setIsLoading(false);
     }
   };
 
   // Handle canvas send (Write Mode)
   const handleCanvasSend = async () => {
-    if (!canvasRef.current || isLoading) return;
+    if (!canvasRef.current || isLoading || ocrStatus === 'reading') return;
     if (!hasDrawing && !writeNoteInput.trim()) return;
 
     try {
@@ -232,8 +268,10 @@ export default function LessonBoardPage() {
       }
 
       setWriteNoteInput('');
+      setOcrStatus('idle');
     } catch (error) {
       console.error('Canvas export error:', error);
+      setOcrStatus('error');
     }
   };
 
@@ -569,15 +607,24 @@ export default function LessonBoardPage() {
 
                 <button
                   onClick={handleCanvasSend}
-                  disabled={isLoading || !hasDrawing}
+                  disabled={isLoading || !hasDrawing || ocrStatus === 'reading'}
                   className={`px-4 md:px-6 py-2 rounded-xl font-semibold text-sm md:text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
-                    isLoading || !hasDrawing
+                    isLoading || !hasDrawing || ocrStatus === 'reading'
                       ? 'bg-gray-400 text-white'
                       : `bg-gradient-to-r ${subject.gradient} text-white hover:shadow-lg transform hover:scale-105`
                   }`}
                 >
-                  <Send className="h-4 w-4 md:h-5 md:w-5" />
-                  Send
+                  {ocrStatus === 'reading' ? (
+                    <>
+                      <div className="h-4 w-4 md:h-5 md:w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Reading...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 md:h-5 md:w-5" />
+                      Send
+                    </>
+                  )}
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-2 text-center">
