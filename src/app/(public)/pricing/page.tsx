@@ -48,19 +48,27 @@ export default function PricingPage() {
               },
               {
                 q: 'What payment methods do you accept?',
-                a: 'We accept all major credit cards, PayPal, and wire transfers for annual subscriptions.',
+                a: 'We accept all major South African payment methods including credit/debit cards, EFT, Instant EFT, and SnapScan. Annual subscriptions also available.',
               },
               {
                 q: 'Is there a setup fee?',
-                a: 'No setup fees, ever. What you see is what you pay.',
+                a: 'No setup fees, ever. What you see is what you pay. The School Tier includes free onboarding and training.',
               },
               {
-                q: 'What happens after my free trial?',
-                a: 'Your trial automatically converts to the plan you selected. You can cancel anytime before the trial ends without being charged.',
+                q: 'How many students can use the Family Tier?',
+                a: 'The Family Tier supports up to 5 student accounts, perfect for families with multiple children learning at home.',
               },
               {
-                q: 'Do you offer discounts for non-profits?',
-                a: 'Yes! We offer special pricing for non-profit organizations and educational institutions. Contact our sales team for details.',
+                q: 'What if my school has more than 100 students?',
+                a: 'For schools with more than 100 students, we offer custom Enterprise pricing. Contact our sales team for a quote tailored to your institution\'s needs.',
+              },
+              {
+                q: 'Do you offer discounts for multiple schools or districts?',
+                a: 'Yes! We offer special volume discounts for school districts, education departments, and multi-school organizations. Contact us for details.',
+              },
+              {
+                q: 'Is the pricing aligned with CAPS curriculum?',
+                a: 'Absolutely! All tiers include access to South African CAPS curriculum content (Grades 4-9) for Mathematics, English, Sciences, and more.',
               },
             ].map((faq, index) => (
               <motion.div
