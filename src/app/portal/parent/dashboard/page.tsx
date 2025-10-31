@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { Bot, Calendar, TrendingUp, Users, UserCircle, Plus } from 'lucide-react';
@@ -57,6 +57,7 @@ const defaultHomeworks = [
 export default function ParentDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const redirected = useRef(false);
   const [learners, setLearners] = useState(defaultLearners);
   const [homeworks, setHomeworks] = useState(defaultHomeworks);
   const [showAIModal, setShowAIModal] = useState(false);
@@ -70,15 +71,49 @@ export default function ParentDashboard() {
   });
 
   useEffect(() => {
+    // Prevent multiple redirects
+    if (redirected.current) return;
+
     // Only redirect after session fully resolves
     if (status === 'unauthenticated') {
+      redirected.current = true;
       router.replace('/login');
-    } else if (session && (session.user as any).role?.toUpperCase() !== 'PARENT') {
-      // Redirect to correct portal if wrong role
-      const role = ((session.user as any).role as string)?.toLowerCase();
-      router.replace(`/portal/${role}/dashboard`);
+      return;
+    }
+
+    if (status === 'authenticated' && session) {
+      const userRole = (session.user as any).role?.toUpperCase();
+      if (userRole && userRole !== 'PARENT') {
+        redirected.current = true;
+        // Redirect to correct portal if wrong role
+        const role = userRole.toLowerCase();
+        router.replace(`/portal/${role}/dashboard`);
+      }
     }
   }, [status, session, router]);
+
+  // Load data from localStorage on mount (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedLearners = localStorage.getItem('parent_learners');
+      if (storedLearners) {
+        try {
+          setLearners(JSON.parse(storedLearners));
+        } catch (e) {
+          console.error('Error parsing learners:', e);
+        }
+      }
+
+      const storedHomework = localStorage.getItem('student_homework');
+      if (storedHomework) {
+        try {
+          setHomeworks(JSON.parse(storedHomework));
+        } catch (e) {
+          console.error('Error parsing homework:', e);
+        }
+      }
+    }
+  }, []);
 
   // Show loading state until session is ready
   if (status === 'loading') {
@@ -101,22 +136,6 @@ export default function ParentDashboard() {
     title: 'Mrs.',
     name: session.user?.name || 'Parent',
   };
-
-  // Load learners from localStorage on mount
-  useEffect(() => {
-    const storedLearners = localStorage.getItem('parent_learners');
-    if (storedLearners) {
-      setLearners(JSON.parse(storedLearners));
-    }
-  }, []);
-
-  // Load homework from localStorage on mount
-  useEffect(() => {
-    const storedHomework = localStorage.getItem('student_homework');
-    if (storedHomework) {
-      setHomeworks(JSON.parse(storedHomework));
-    }
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
@@ -441,17 +460,24 @@ export default function ParentDashboard() {
                     createdAt: new Date().toISOString(),
                   };
 
-                  // Save to localStorage
-                  const existingHomework = localStorage.getItem('student_homework');
-                  const homeworkList = existingHomework ? JSON.parse(existingHomework) : [];
-                  homeworkList.push(newHomework);
-                  localStorage.setItem('student_homework', JSON.stringify(homeworkList));
+                  // Save to localStorage (client-side only)
+                  if (typeof window !== 'undefined') {
+                    try {
+                      const existingHomework = localStorage.getItem('student_homework');
+                      const homeworkList = existingHomework ? JSON.parse(existingHomework) : [];
+                      homeworkList.push(newHomework);
+                      localStorage.setItem('student_homework', JSON.stringify(homeworkList));
 
-                  // Update state to refresh the UI
-                  setHomeworks(homeworkList);
+                      // Update state to refresh the UI
+                      setHomeworks(homeworkList);
 
-                  console.log('Created homework:', newHomework);
-                  alert(`Homework "${newHomework.title}" created for ${newHomework.learner}`);
+                      console.log('Created homework:', newHomework);
+                      alert(`Homework "${newHomework.title}" created for ${newHomework.learner}`);
+                    } catch (e) {
+                      console.error('Error saving homework:', e);
+                      alert('Error saving homework. Please try again.');
+                    }
+                  }
 
                   setShowCreateHomeworkModal(false);
                   setHomeworkForm({ title: '', learner: '', subject: '', difficulty: '', dueDate: '' });
