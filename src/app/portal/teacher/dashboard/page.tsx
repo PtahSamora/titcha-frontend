@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Users, FileText, ClipboardList, TrendingUp, BookOpen, Upload, Settings } from 'lucide-react';
+import { Users, FileText, ClipboardList, TrendingUp, BookOpen, Upload, Settings, Home, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // Mock teacher data by grade
@@ -124,7 +124,15 @@ export default function TeacherDashboard() {
       <nav className="bg-white/80 backdrop-blur-sm border-b border-blue-200">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">Teacher Portal</h1>
-          <div className="flex gap-4">
+          <div className="flex gap-3">
+            <button
+              onClick={() => window.location.href = 'https://titcha-frontend.vercel.app/'}
+              className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+              title="Go to Titcha Home"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">Home</span>
+            </button>
             <button
               onClick={() => router.push('/portal/teacher/classes')}
               className="px-4 py-2 text-gray-700 hover:text-purple-600"
@@ -133,9 +141,27 @@ export default function TeacherDashboard() {
             </button>
             <button
               onClick={() => router.push('/portal/teacher/profile')}
-              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
             >
               Profile
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  await signOut({
+                    callbackUrl: 'https://titcha-frontend.vercel.app/',
+                    redirect: true
+                  });
+                } catch (error) {
+                  console.error('Logout error:', error);
+                  window.location.href = 'https://titcha-frontend.vercel.app/';
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>

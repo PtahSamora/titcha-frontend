@@ -1,8 +1,8 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Upload, TrendingUp, GraduationCap, LogOut, Sparkles, X } from 'lucide-react';
+import { BookOpen, Upload, TrendingUp, GraduationCap, LogOut, Sparkles, X, Home } from 'lucide-react';
 import Link from 'next/link';
 import RoleBadge from '@/components/ui/RoleBadge';
 import ButtonGradient from '@/components/ui/ButtonGradient';
@@ -183,7 +183,15 @@ export default function StudentDashboard() {
               </Link>
               <RoleBadge role="student" />
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => window.location.href = 'https://titcha-frontend.vercel.app/'}
+                className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
+                title="Go to Titcha Home"
+              >
+                <Home className="h-5 w-5" />
+                <span className="hidden sm:inline">Home</span>
+              </button>
               <button
                 onClick={() => setShowProfileModal(true)}
                 className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 hover:opacity-90 transition shadow-md"
@@ -197,12 +205,23 @@ export default function StudentDashboard() {
                   </div>
                 )}
               </button>
-              <Link href="/api/auth/signout">
-                <button className="text-gray-600 hover:text-gray-900 font-medium flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors">
-                  <LogOut className="h-5 w-5" />
-                  <span className="hidden sm:inline">Logout</span>
-                </button>
-              </Link>
+              <button
+                onClick={async () => {
+                  try {
+                    await signOut({
+                      callbackUrl: 'https://titcha-frontend.vercel.app/',
+                      redirect: true
+                    });
+                  } catch (error) {
+                    console.error('Logout error:', error);
+                    window.location.href = 'https://titcha-frontend.vercel.app/';
+                  }
+                }}
+                className="text-gray-600 hover:text-gray-900 font-medium flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
             </div>          </div>
         </div>
       </header>

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Bot, Calendar, TrendingUp, Users, UserCircle, Plus } from 'lucide-react';
+import { Bot, Calendar, TrendingUp, Users, UserCircle, Plus, Home, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // Default learners data
@@ -137,17 +137,47 @@ export default function ParentDashboard() {
     name: session.user?.name || 'Parent',
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut({
+        callbackUrl: 'https://titcha-frontend.vercel.app/',
+        redirect: true
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback to manual redirect
+      window.location.href = 'https://titcha-frontend.vercel.app/';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
       <nav className="bg-white/80 backdrop-blur-sm border-b border-blue-200">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-purple-600">Parent Portal</h1>
-          <div className="flex gap-4">
+          <div className="flex gap-3">
+            <button
+              onClick={() => window.location.href = 'https://titcha-frontend.vercel.app/'}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              title="Go to Titcha Home"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">Titcha Home</span>
+            </button>
             <button
               onClick={() => router.push('/portal/parent/profile')}
-              className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+              className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
             >
-              Profile
+              <UserCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Profile</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
