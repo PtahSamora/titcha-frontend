@@ -156,7 +156,7 @@ export const authOptions: NextAuthOptions = {
         : 'next-auth.session-token',
       options: {
         httpOnly: true,
-        sameSite: 'none', // Changed to 'none' for cross-origin support in production
+        sameSite: 'lax', // Changed back to 'lax' - 'none' was causing 401 errors
         path: '/',
         secure: process.env.NODE_ENV === 'production',
       },
