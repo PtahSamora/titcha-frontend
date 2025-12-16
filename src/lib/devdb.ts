@@ -102,6 +102,7 @@ export async function findUserByEmail(email: string) {
           email: true,
           name: true,
           role: true,
+          password: true, // Include password for auth compatibility
         },
       });
 
@@ -114,7 +115,7 @@ export async function findUserByEmail(email: string) {
           const devUser = {
             id: prismaUser.id,
             email: prismaUser.email || '',
-            passwordHash: '', // Not needed for Prisma users
+            passwordHash: prismaUser.password || '', // Include password hash for auth
             displayName: prismaUser.name || prismaUser.email || 'User',
             role: prismaUser.role.toLowerCase() as 'student' | 'teacher' | 'parent',
             schoolId: undefined,
@@ -127,11 +128,11 @@ export async function findUserByEmail(email: string) {
           console.log('[DevDB] Synced Prisma user to devdb:', prismaUser.email);
         }
 
-        // Return in devdb format
+        // Return in devdb format with password hash
         return existingUser || {
           id: prismaUser.id,
           email: prismaUser.email || '',
-          passwordHash: '',
+          passwordHash: prismaUser.password || '', // Include password hash for auth
           displayName: prismaUser.name || prismaUser.email || 'User',
           role: prismaUser.role.toLowerCase() as 'student' | 'teacher' | 'parent',
           schoolId: undefined,
