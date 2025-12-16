@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
+import { useFriendsStore } from '@/lib/store';
 
 interface Member {
   id: string;
@@ -19,6 +20,7 @@ interface GroupCreateModalProps {
 
 export function GroupCreateModal({ isOpen, onClose, onGroupCreated, initialMembers = [] }: GroupCreateModalProps) {
   const { data: session } = useSession();
+  const { friends, loadFriends } = useFriendsStore();
   const [groupName, setGroupName] = useState('');
   const [subject, setSubject] = useState('');
   const [createStudyRoom, setCreateStudyRoom] = useState(true);
@@ -27,6 +29,14 @@ export function GroupCreateModal({ isOpen, onClose, onGroupCreated, initialMembe
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchError, setSearchError] = useState('');
+  const [showFriendsDropdown, setShowFriendsDropdown] = useState(false);
+
+  // Load friends when modal opens
+  useEffect(() => {
+    if (isOpen && session?.user) {
+      loadFriends();
+    }
+  }, [isOpen, session]);
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +70,19 @@ export function GroupCreateModal({ isOpen, onClose, onGroupCreated, initialMembe
   const handleRemoveMember = (email: string) => {
     setMembers(members.filter(m => m.email !== email));
   };
+
+  const handleAddFriendFromList = (friend: Member) => {
+    // Check if already added
+    if (members.some(m => m.email === friend.email)) {
+      setSearchError('User already added');
+      return;
+    }
+    setMembers([...members, friend]);
+    setShowFriendsDropdown(false);
+  };
+
+  // Filter friends not already added
+  const availableFriends = friends.filter(f => !members.some(m => m.email === f.email));
 
   const handleCreateGroup = async () => {
     setError('');
@@ -247,12 +270,59 @@ export function GroupCreateModal({ isOpen, onClose, onGroupCreated, initialMembe
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Add Members (Optional)
               </label>
+
+              {/* Quick Add from Friends List */}
+              {availableFriends.length > 0 && (
+                <div className="mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowFriendsDropdown(!showFriendsDropdown)}
+                    className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-between"
+                  >
+                    <span>Add from Friends List ({availableFriends.length})</span>
+                    <svg
+                      className={`w-5 h-5 transition-transform ${showFriendsDropdown ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {showFriendsDropdown && (
+                    <div className="mt-2 max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg">
+                      {availableFriends.map((friend) => (
+                        <button
+                          key={friend.id}
+                          type="button"
+                          onClick={() => handleAddFriendFromList(friend)}
+                          className="w-full px-4 py-2 hover:bg-purple-50 transition-colors text-left flex items-center gap-3 border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                            {friend.displayName.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{friend.displayName}</p>
+                            <p className="text-xs text-gray-500">{friend.email}</p>
+                          </div>
+                          <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                          </svg>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Manual Add by Email */}
               <form onSubmit={handleAddMember} className="flex gap-2">
                 <input
                   type="email"
                   value={memberEmail}
                   onChange={(e) => setMemberEmail(e.target.value)}
-                  placeholder="friend@school.com"
+                  placeholder="Or add by email: friend@school.com"
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
                 <button
