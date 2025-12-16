@@ -20,6 +20,7 @@ export function FriendsBar() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [friendEmail, setFriendEmail] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -44,12 +45,19 @@ export function FriendsBar() {
   const handleAddFriend = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     try {
       await addFriend(friendEmail);
+      setSuccess(`Friend added successfully! You can now chat with them.`);
       setFriendEmail('');
-      setShowAddModal(false);
+
+      // Close modal after 2 seconds to show success message
+      setTimeout(() => {
+        setShowAddModal(false);
+        setSuccess('');
+      }, 2000);
     } catch (err: any) {
       setError(err.message || 'Failed to add friend');
     } finally {
@@ -138,6 +146,12 @@ export function FriendsBar() {
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
                   {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                  {success}
                 </div>
               )}
 

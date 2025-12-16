@@ -35,17 +35,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get current user to check same school
-    const currentUser = await findUserById(session.user.id);
-
-    // Only return user if same school (for safety)
-    if (currentUser?.schoolId && user.schoolId !== currentUser.schoolId) {
+    // Only students can be searched for friending
+    if (user.role !== 'student') {
       return NextResponse.json(
-        { error: 'User must be from the same school' },
+        { error: 'Can only add students as friends' },
         { status: 403 }
       );
     }
 
+    // Get current user to check role
+    const currentUser = await findUserById(session.user.id);
+
+    if (currentUser?.role !== 'student') {
+      return NextResponse.json(
+        { error: 'Only students can search for friends' },
+        { status: 403 }
+      );
+    }
+
+    // No school restriction - students from any school can be friends
     return NextResponse.json(
       {
         user: {

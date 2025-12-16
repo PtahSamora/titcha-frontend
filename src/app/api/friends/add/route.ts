@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireUser, requireSameSchool } from '@/lib/auth-guards';
+import { requireUser } from '@/lib/auth-guards';
 import { findUserByEmail, addFriendship } from '@/lib/devdb';
 
 export async function POST(request: NextRequest) {
@@ -26,6 +26,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Only students can add friends, and they can only add other students
+    if (user.role !== 'student') {
+      return NextResponse.json(
+        { error: 'Only students can add friends' },
+        { status: 403 }
+      );
+    }
+
+    if (friendUser.role !== 'student') {
+      return NextResponse.json(
+        { error: 'Can only add students as friends' },
+        { status: 403 }
+      );
+    }
+
     // Prevent adding self
     if (friendUser.id === user.userId) {
       return NextResponse.json(
@@ -34,10 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if same school
-    await requireSameSchool(user.userId, friendUser.id);
-
-    // Add friendship (bidirectional)
+    // Add friendship (bidirectional) - no school restriction
     const friendship = await addFriendship(user.userId, friendUser.id);
 
     return NextResponse.json(
@@ -48,6 +60,7 @@ export async function POST(request: NextRequest) {
           id: friendUser.id,
           email: friendUser.email,
           displayName: friendUser.displayName,
+          role: friendUser.role,
         },
       },
       { status: 200 }
@@ -58,12 +71,9 @@ export async function POST(request: NextRequest) {
     if (error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.message.includes('same school')) {
-      return NextResponse.json({ error: 'Can only add friends from the same school' }, { status: 403 });
-    }
 
     return NextResponse.json(
-      { error: 'Failed to add friend' },
+      { error: error.message || 'Failed to add friend' },
       { status: 500 }
     );
   }
