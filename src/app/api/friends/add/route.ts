@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Find friend by email
+    console.log('[Add Friend] Searching for user:', friendEmail);
     const friendUser = await findUserByEmail(friendEmail);
+    console.log('[Add Friend] Search result:', friendUser ? `Found: ${friendUser.email} (${friendUser.role})` : 'Not found');
 
     if (!friendUser) {
       return NextResponse.json(
@@ -27,14 +29,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Only students can add friends, and they can only add other students
-    if (user.role !== 'student') {
+    // Case-insensitive role check (Supabase uses "STUDENT", devdb uses "student")
+    console.log('[Add Friend] Current user role:', user.role);
+    console.log('[Add Friend] Friend user role:', friendUser.role);
+
+    if (user.role.toLowerCase() !== 'student') {
+      console.log('[Add Friend] Rejected: Current user is not a student');
       return NextResponse.json(
         { error: 'Only students can add friends' },
         { status: 403 }
       );
     }
 
-    if (friendUser.role !== 'student') {
+    if (friendUser.role.toLowerCase() !== 'student') {
+      console.log('[Add Friend] Rejected: Friend is not a student');
       return NextResponse.json(
         { error: 'Can only add students as friends' },
         { status: 403 }

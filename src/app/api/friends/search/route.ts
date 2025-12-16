@@ -36,7 +36,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Only students can be searched for friending
-    if (user.role !== 'student') {
+    // Case-insensitive role check (Supabase uses "STUDENT", devdb uses "student")
+    if (user.role.toLowerCase() !== 'student') {
       return NextResponse.json(
         { error: 'Can only add students as friends' },
         { status: 403 }
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     // Get current user to check role
     const currentUser = await findUserById(session.user.id);
 
-    if (currentUser?.role !== 'student') {
+    if (currentUser && currentUser.role.toLowerCase() !== 'student') {
       return NextResponse.json(
         { error: 'Only students can search for friends' },
         { status: 403 }
