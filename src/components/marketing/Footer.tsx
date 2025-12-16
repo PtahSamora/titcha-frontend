@@ -47,15 +47,15 @@ export default function Footer() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Mail className="w-4 h-4" />
-                <span>support@eduai.com</span>
+                <span>info@titcha.io</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Phone className="w-4 h-4" />
-                <span>+1 (555) 123-4567</span>
+                <span>078 411 6407</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="w-4 h-4" />
-                <span>San Francisco, CA</span>
+                <span>Sunninghill, JHB</span>
               </div>
             </div>
           </div>

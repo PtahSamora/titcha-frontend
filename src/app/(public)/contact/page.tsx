@@ -180,8 +180,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Email</h4>
-                      <p className="text-gray-600">support@eduai.com</p>
-                      <p className="text-gray-600">sales@eduai.com</p>
+                      <p className="text-gray-600">info@titcha.io</p>
                     </div>
                   </div>
 
@@ -191,8 +190,8 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Phone</h4>
-                      <p className="text-gray-600">+1 (555) 123-4567</p>
-                      <p className="text-sm text-gray-500">Mon-Fri 9am-6pm EST</p>
+                      <p className="text-gray-600">078 411 6407</p>
+                      <p className="text-sm text-gray-500">Mon-Fri 9am-5pm SAST</p>
                     </div>
                   </div>
 
@@ -203,9 +202,9 @@ export default function ContactPage() {
                     <div>
                       <h4 className="font-semibold text-gray-900 mb-1">Office</h4>
                       <p className="text-gray-600">
-                        123 Innovation Drive<br />
-                        San Francisco, CA 94105<br />
-                        United States
+                        Sunninghill<br />
+                        Johannesburg<br />
+                        South Africa
                       </p>
                     </div>
                   </div>

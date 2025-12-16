@@ -5,6 +5,8 @@ import { useSession, signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { Bot, Calendar, TrendingUp, Users, UserCircle, Plus, Home, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import RoleBadge from '@/components/ui/RoleBadge';
 
 // Default learners data
 const defaultLearners = [
@@ -152,55 +154,56 @@ export default function ParentDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-blue-100">
-      <nav className="bg-white/80 backdrop-blur-sm border-b border-blue-200">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-purple-600">Parent Portal</h1>
-          <div className="flex gap-3">
-            <button
-              onClick={() => window.location.href = 'https://titcha-frontend.vercel.app/'}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              title="Go to Titcha Home"
-            >
-              <Home className="w-4 h-4" />
-              <span className="hidden sm:inline">Titcha Home</span>
-            </button>
-            <button
-              onClick={() => router.push('/portal/parent/profile')}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-            >
-              <UserCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Profile</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
+      {/* Header */}
+      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <h1 className="text-2xl font-bold font-heading bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent cursor-pointer">
+                  Titcha
+                </h1>
+              </Link>
+              <RoleBadge role="parent" />
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/portal/parent/learners')}
+                className="text-purple-600 hover:text-purple-700 font-medium flex items-center gap-2 hover:bg-purple-50 px-3 py-2 rounded-lg transition-colors"
+                title="View My Kids"
+              >
+                <UserCircle className="h-5 w-5" />
+                <span className="hidden sm:inline">My Kids</span>
+              </button>
+              <button
+                onClick={() => window.location.href = 'https://titcha-frontend.vercel.app/'}
+                className="text-blue-600 hover:text-blue-700 font-medium flex items-center gap-2 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
+                title="Go to Titcha Home"
+              >
+                <Home className="h-5 w-5" />
+                <span className="hidden sm:inline">Home</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="text-gray-600 hover:text-gray-900 font-medium flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           </div>
         </div>
-      </nav>
+      </header>
 
       <div className="container mx-auto px-4 py-8">
         {/* Header Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex justify-between items-start"
+          className="mb-8"
         >
-          <div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h2>
-            <p className="text-gray-600">Welcome back, {user.title} {user.name} 👋</p>
-          </div>
-          <button
-            onClick={() => router.push('/portal/parent/learners')}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-lg transition-all"
-          >
-            <UserCircle className="w-5 h-5" />
-            My Kids
-          </button>
+          <h2 className="text-4xl font-bold text-gray-900 mb-2">Dashboard</h2>
+          <p className="text-gray-600">Welcome back, {user.title} {user.name} 👋</p>
         </motion.div>
 
         {/* Quick Stats */}
