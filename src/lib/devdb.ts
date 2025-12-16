@@ -91,11 +91,102 @@ export async function writeDB(data: Database): Promise<void> {
 
 // Helper functions
 export async function findUserByEmail(email: string) {
+  // Try Prisma first if available
+  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
+    try {
+      const { prisma } = await import('./prisma');
+      const prismaUser = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      });
+
+      if (prismaUser) {
+        // Sync to devdb for compatibility
+        const db = await readDB();
+        const existingUser = db.users.find(u => u.id === prismaUser.id);
+
+        if (!existingUser) {
+          const devUser = {
+            id: prismaUser.id,
+            email: prismaUser.email || '',
+            passwordHash: '', // Not needed for Prisma users
+            displayName: prismaUser.name || prismaUser.email || 'User',
+            role: prismaUser.role.toLowerCase() as 'student' | 'teacher' | 'parent',
+            schoolId: undefined,
+            meta: {},
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          db.users.push(devUser);
+          await writeDB(db);
+          console.log('[DevDB] Synced Prisma user to devdb:', prismaUser.email);
+        }
+
+        // Return in devdb format
+        return existingUser || {
+          id: prismaUser.id,
+          email: prismaUser.email || '',
+          passwordHash: '',
+          displayName: prismaUser.name || prismaUser.email || 'User',
+          role: prismaUser.role.toLowerCase() as 'student' | 'teacher' | 'parent',
+          schoolId: undefined,
+          meta: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+    } catch (error) {
+      console.error('[DevDB] Error querying Prisma:', error);
+      // Fall through to devdb
+    }
+  }
+
+  // Fallback to devdb
   const db = await readDB();
   return db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
 }
 
 export async function findUserById(id: string) {
+  // Try Prisma first if available
+  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('xxxxx')) {
+    try {
+      const { prisma } = await import('./prisma');
+      const prismaUser = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      });
+
+      if (prismaUser) {
+        // Return in devdb format
+        return {
+          id: prismaUser.id,
+          email: prismaUser.email || '',
+          passwordHash: '',
+          displayName: prismaUser.name || prismaUser.email || 'User',
+          role: prismaUser.role.toLowerCase() as 'student' | 'teacher' | 'parent',
+          schoolId: undefined,
+          meta: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+    } catch (error) {
+      console.error('[DevDB] Error querying Prisma:', error);
+      // Fall through to devdb
+    }
+  }
+
+  // Fallback to devdb
   const db = await readDB();
   return db.users.find(u => u.id === id);
 }
