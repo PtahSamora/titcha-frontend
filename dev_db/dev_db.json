@@ -109,6 +109,20 @@
       },
       "createdAt": "2025-10-18T23:45:12.703Z",
       "updatedAt": "2025-10-18T23:45:12.703Z"
+    },
+    {
+      "id": "3ab98155-b394-417a-8773-843218aaacff",
+      "role": "student",
+      "email": "studenttest@test.com",
+      "passwordHash": "$2b$10$szKKAbqxdO6dhinT.f.QUO1ZMVhFPrTsOMJsGXhUEQ4NTkb28w9e6",
+      "displayName": "student test",
+      "schoolId": "school-1",
+      "meta": {
+        "grade": "Grade 10",
+        "theme": "student"
+      },
+      "createdAt": "2025-10-20T20:00:12.329Z",
+      "updatedAt": "2025-10-20T20:00:12.329Z"
     }
   ],
   "schools": [
@@ -196,6 +210,13 @@
       "schoolId": "school-1",
       "grade": "Grade 10",
       "fullName": "Samora"
+    },
+    {
+      "id": "student-0a9a5f7d",
+      "userId": "3ab98155-b394-417a-8773-843218aaacff",
+      "schoolId": "school-1",
+      "grade": "Grade 10",
+      "fullName": "student test"
     }
   ],
   "parents": [

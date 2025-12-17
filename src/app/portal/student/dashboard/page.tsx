@@ -9,6 +9,7 @@ import ButtonGradient from '@/components/ui/ButtonGradient';
 import { FriendsBar } from '@/components/student/FriendsBar';
 import { DMTray } from '@/components/student/DMTray';
 import { GroupsPanel } from '@/components/student/GroupsPanel';
+import { NotificationBell } from '@/components/student/NotificationBell';
 import { useEffect, useState } from 'react';
 import { getZodiacSign, getZodiacEmoji } from '@/lib/zodiac';
 
@@ -192,6 +193,7 @@ export default function StudentDashboard() {
                 <Home className="h-5 w-5" />
                 <span className="hidden sm:inline">Home</span>
               </button>
+              <NotificationBell />
               <button
                 onClick={() => setShowProfileModal(true)}
                 className="w-10 h-10 rounded-full overflow-hidden border-2 border-purple-500 hover:opacity-90 transition shadow-md"

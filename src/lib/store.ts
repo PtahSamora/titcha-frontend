@@ -9,11 +9,31 @@ interface User {
   avatar?: string;
 }
 
+// Notification Types
+export interface Notification {
+  id: string;
+  type: 'friend_request' | 'friend_accepted' | 'group_invite' | 'homework_due' | 'achievement' | 'system';
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  actionUrl?: string;
+  metadata?: {
+    userId?: string;
+    userName?: string;
+    groupId?: string;
+    groupName?: string;
+  };
+}
+
 interface AppState {
   user: User | null;
   setUser: (user: User | null) => void;
-  notifications: any[];
-  addNotification: (notification: any) => void;
+  notifications: Notification[];
+  addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
+  markAsRead: (notificationId: string) => void;
+  markAllAsRead: () => void;
+  removeNotification: (notificationId: string) => void;
   clearNotifications: () => void;
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -27,7 +47,28 @@ export const useStore = create<AppState>()(
       notifications: [],
       addNotification: (notification) =>
         set((state) => ({
-          notifications: [...state.notifications, notification],
+          notifications: [
+            {
+              ...notification,
+              id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              createdAt: new Date().toISOString(),
+            },
+            ...state.notifications,
+          ],
+        })),
+      markAsRead: (notificationId) =>
+        set((state) => ({
+          notifications: state.notifications.map((n) =>
+            n.id === notificationId ? { ...n, read: true } : n
+          ),
+        })),
+      markAllAsRead: () =>
+        set((state) => ({
+          notifications: state.notifications.map((n) => ({ ...n, read: true })),
+        })),
+      removeNotification: (notificationId) =>
+        set((state) => ({
+          notifications: state.notifications.filter((n) => n.id !== notificationId),
         })),
       clearNotifications: () => set({ notifications: [] }),
       sidebarOpen: true,

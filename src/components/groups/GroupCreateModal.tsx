@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
-import { useFriendsStore } from '@/lib/store';
+import { useFriendsStore, useStore } from '@/lib/store';
 
 interface Member {
   id: string;
@@ -21,6 +21,7 @@ interface GroupCreateModalProps {
 export function GroupCreateModal({ isOpen, onClose, onGroupCreated, initialMembers = [] }: GroupCreateModalProps) {
   const { data: session } = useSession();
   const { friends, loadFriends } = useFriendsStore();
+  const { addNotification } = useStore();
   const [groupName, setGroupName] = useState('');
   const [subject, setSubject] = useState('');
   const [createStudyRoom, setCreateStudyRoom] = useState(true);
@@ -166,6 +167,18 @@ export function GroupCreateModal({ isOpen, onClose, onGroupCreated, initialMembe
           console.error('Failed to create study room:', err);
         }
       }
+
+      // Add notification about successful group creation
+      addNotification({
+        type: 'group_invite',
+        title: 'Group Created!',
+        message: `Your group "${groupName.trim()}" has been created${createStudyRoom ? ' with study room' : ''}.`,
+        read: false,
+        metadata: {
+          groupId: groupId,
+          groupName: groupName.trim(),
+        },
+      });
 
       setLoading(false);
       onGroupCreated?.(groupId);

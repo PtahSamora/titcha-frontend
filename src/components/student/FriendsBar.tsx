@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useFriendsStore } from '@/lib/store';
+import { useFriendsStore, useStore } from '@/lib/store';
 import { getPresenceSocket } from '@/lib/socket';
 import { useSession } from 'next-auth/react';
 
@@ -17,6 +17,7 @@ interface Friend {
 export function FriendsBar() {
   const { data: session } = useSession();
   const { friends, onlineMap, loadFriends, setOnlineStatus, openDM, addFriend } = useFriendsStore();
+  const { addNotification } = useStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [friendEmail, setFriendEmail] = useState('');
   const [error, setError] = useState('');
@@ -49,7 +50,22 @@ export function FriendsBar() {
     setLoading(true);
 
     try {
-      await addFriend(friendEmail);
+      const result = await addFriend(friendEmail);
+
+      // Add notification about successful friend addition
+      if (result.friend) {
+        addNotification({
+          type: 'friend_accepted',
+          title: 'New Friend Added!',
+          message: `You are now friends with ${result.friend.displayName}. Start chatting!`,
+          read: false,
+          metadata: {
+            userId: result.friend.id,
+            userName: result.friend.displayName,
+          },
+        });
+      }
+
       setSuccess(`Friend added successfully! You can now chat with them.`);
       setFriendEmail('');
 
