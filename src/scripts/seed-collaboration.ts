@@ -82,7 +82,9 @@ async function seedCollaboration() {
       id: 'friend-1',
       aUserId: testStudent1.id,
       bUserId: testStudent2.id,
+      status: 'accepted',
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
     console.log(`[Seed] Created friendship between ${testStudent1.email} and ${testStudent2.email}`);
   } else if (!testStudent2) {
