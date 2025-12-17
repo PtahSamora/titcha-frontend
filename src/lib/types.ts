@@ -100,9 +100,11 @@ export interface Homework {
 
 export interface Friendship {
   id: string;
-  aUserId: string;
-  bUserId: string;
+  aUserId: string; // User who sent the request
+  bUserId: string; // User who received the request
+  status: 'pending' | 'accepted' | 'rejected';
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface DirectMessage {

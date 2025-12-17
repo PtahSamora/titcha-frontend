@@ -57,12 +57,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Add friendship (bidirectional) - no school restriction
-    const friendship = await addFriendship(user.userId, friendUser.id);
+    // Add friendship as pending (user.userId is sender, friendUser.id is recipient)
+    const friendship = await addFriendship(user.userId, friendUser.id, 'pending');
+
+    console.log('[Add Friend] Friend request created:', friendship);
 
     return NextResponse.json(
       {
-        message: 'Friend added successfully',
+        message: 'Friend request sent successfully',
         friendship,
         friend: {
           id: friendUser.id,

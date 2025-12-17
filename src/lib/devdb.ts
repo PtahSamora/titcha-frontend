@@ -228,9 +228,8 @@ export async function createUser(userData: {
 }
 
 // Friendship helpers
-export async function addFriendship(aUserId: string, bUserId: string) {
+export async function addFriendship(aUserId: string, bUserId: string, status: 'pending' | 'accepted' = 'pending') {
   const db = await readDB();
-  const roomKey = [aUserId, bUserId].sort().join('|');
   const existing = db.friendships.find(f =>
     (f.aUserId === aUserId && f.bUserId === bUserId) ||
     (f.aUserId === bUserId && f.bUserId === aUserId)
@@ -239,11 +238,35 @@ export async function addFriendship(aUserId: string, bUserId: string) {
 
   const friendship = {
     id: `friend-${Date.now()}`,
-    aUserId,
-    bUserId,
+    aUserId, // User who sent the request
+    bUserId, // User who received the request
+    status,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
   db.friendships.push(friendship);
+  await writeDB(db);
+  return friendship;
+}
+
+export async function acceptFriendRequest(friendshipId: string) {
+  const db = await readDB();
+  const friendship = db.friendships.find(f => f.id === friendshipId);
+  if (!friendship) throw new Error('Friendship not found');
+
+  friendship.status = 'accepted';
+  friendship.updatedAt = new Date().toISOString();
+  await writeDB(db);
+  return friendship;
+}
+
+export async function rejectFriendRequest(friendshipId: string) {
+  const db = await readDB();
+  const friendship = db.friendships.find(f => f.id === friendshipId);
+  if (!friendship) throw new Error('Friendship not found');
+
+  friendship.status = 'rejected';
+  friendship.updatedAt = new Date().toISOString();
   await writeDB(db);
   return friendship;
 }
@@ -251,7 +274,7 @@ export async function addFriendship(aUserId: string, bUserId: string) {
 export async function listFriends(userId: string) {
   const db = await readDB();
   const friendships = db.friendships.filter(
-    f => f.aUserId === userId || f.bUserId === userId
+    f => (f.aUserId === userId || f.bUserId === userId) && f.status === 'accepted'
   );
   const friendUserIds = friendships.map(f =>
     f.aUserId === userId ? f.bUserId : f.aUserId
@@ -263,6 +286,60 @@ export async function listFriends(userId: string) {
     displayName: u.displayName,
     role: u.role,
   }));
+}
+
+export async function listPendingFriendRequests(userId: string) {
+  const db = await readDB();
+  // Get friend requests where user is the recipient (bUserId) and status is pending
+  const incomingRequests = db.friendships.filter(
+    f => f.bUserId === userId && f.status === 'pending'
+  );
+
+  // Get the user info for each sender
+  const requests = await Promise.all(
+    incomingRequests.map(async (friendship) => {
+      const sender = db.users.find(u => u.id === friendship.aUserId);
+      return {
+        friendshipId: friendship.id,
+        user: sender ? {
+          id: sender.id,
+          email: sender.email,
+          displayName: sender.displayName,
+          role: sender.role,
+        } : null,
+        createdAt: friendship.createdAt,
+      };
+    })
+  );
+
+  return requests.filter(r => r.user !== null);
+}
+
+export async function listSentFriendRequests(userId: string) {
+  const db = await readDB();
+  // Get friend requests where user is the sender (aUserId) and status is pending
+  const sentRequests = db.friendships.filter(
+    f => f.aUserId === userId && f.status === 'pending'
+  );
+
+  // Get the user info for each recipient
+  const requests = await Promise.all(
+    sentRequests.map(async (friendship) => {
+      const recipient = db.users.find(u => u.id === friendship.bUserId);
+      return {
+        friendshipId: friendship.id,
+        user: recipient ? {
+          id: recipient.id,
+          email: recipient.email,
+          displayName: recipient.displayName,
+          role: recipient.role,
+        } : null,
+        createdAt: friendship.createdAt,
+      };
+    })
+  );
+
+  return requests.filter(r => r.user !== null);
 }
 
 // DM helpers

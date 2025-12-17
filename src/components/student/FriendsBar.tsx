@@ -52,12 +52,12 @@ export function FriendsBar() {
     try {
       const result = await addFriend(friendEmail);
 
-      // Add notification about successful friend addition
+      // Add notification about sending friend request
       if (result.friend) {
         addNotification({
-          type: 'friend_accepted',
-          title: 'New Friend Added!',
-          message: `You are now friends with ${result.friend.displayName}. Start chatting!`,
+          type: 'friend_request',
+          title: 'Friend Request Sent!',
+          message: `Your friend request has been sent to ${result.friend.displayName}. Waiting for them to accept.`,
           read: false,
           metadata: {
             userId: result.friend.id,
@@ -66,16 +66,18 @@ export function FriendsBar() {
         });
       }
 
-      setSuccess(`Friend added successfully! You can now chat with them.`);
+      setSuccess(`Friend request sent to ${result.friend?.displayName || friendEmail}!`);
       setFriendEmail('');
 
       // Close modal after 2 seconds to show success message
       setTimeout(() => {
         setShowAddModal(false);
         setSuccess('');
+        // Reload page to show pending request
+        window.location.reload();
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Failed to add friend');
+      setError(err.message || 'Failed to send friend request');
     } finally {
       setLoading(false);
     }

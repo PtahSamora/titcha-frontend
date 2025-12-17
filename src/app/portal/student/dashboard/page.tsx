@@ -10,6 +10,7 @@ import { FriendsBar } from '@/components/student/FriendsBar';
 import { DMTray } from '@/components/student/DMTray';
 import { GroupsPanel } from '@/components/student/GroupsPanel';
 import { NotificationBell } from '@/components/student/NotificationBell';
+import { FriendRequests } from '@/components/student/FriendRequests';
 import { useEffect, useState } from 'react';
 import { getZodiacSign, getZodiacEmoji } from '@/lib/zodiac';
 
@@ -354,6 +355,11 @@ export default function StudentDashboard() {
               </div>
             </Link>
           </div>
+        </div>
+
+        {/* Friend Requests */}
+        <div className="mb-8">
+          <FriendRequests />
         </div>
 
         {/* Groups Panel */}
