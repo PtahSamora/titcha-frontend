@@ -273,8 +273,23 @@ export async function rejectFriendRequest(friendshipId: string) {
 
 export async function listFriends(userId: string) {
   const db = await readDB();
+
+  // Migrate old friendships without status field (backward compatibility)
+  let needsWrite = false;
+  db.friendships.forEach(f => {
+    if (!(f as any).status) {
+      (f as any).status = 'accepted'; // Default old friendships to accepted
+      (f as any).updatedAt = f.createdAt;
+      needsWrite = true;
+    }
+  });
+  if (needsWrite) {
+    await writeDB(db);
+    console.log('[DevDB] Migrated old friendships to include status field');
+  }
+
   const friendships = db.friendships.filter(
-    f => (f.aUserId === userId || f.bUserId === userId) && f.status === 'accepted'
+    f => (f.aUserId === userId || f.bUserId === userId) && (f.status === 'accepted' || !(f as any).status)
   );
   const friendUserIds = friendships.map(f =>
     f.aUserId === userId ? f.bUserId : f.aUserId
@@ -290,9 +305,24 @@ export async function listFriends(userId: string) {
 
 export async function listPendingFriendRequests(userId: string) {
   const db = await readDB();
+
+  // Migrate old friendships without status field (backward compatibility)
+  let needsWrite = false;
+  db.friendships.forEach(f => {
+    if (!(f as any).status) {
+      (f as any).status = 'accepted';
+      (f as any).updatedAt = f.createdAt;
+      needsWrite = true;
+    }
+  });
+  if (needsWrite) {
+    await writeDB(db);
+    console.log('[DevDB] Migrated old friendships in listPendingFriendRequests');
+  }
+
   // Get friend requests where user is the recipient (bUserId) and status is pending
   const incomingRequests = db.friendships.filter(
-    f => f.bUserId === userId && f.status === 'pending'
+    f => f.bUserId === userId && (f as any).status === 'pending'
   );
 
   // Get the user info for each sender
@@ -317,9 +347,24 @@ export async function listPendingFriendRequests(userId: string) {
 
 export async function listSentFriendRequests(userId: string) {
   const db = await readDB();
+
+  // Migrate old friendships without status field (backward compatibility)
+  let needsWrite = false;
+  db.friendships.forEach(f => {
+    if (!(f as any).status) {
+      (f as any).status = 'accepted';
+      (f as any).updatedAt = f.createdAt;
+      needsWrite = true;
+    }
+  });
+  if (needsWrite) {
+    await writeDB(db);
+    console.log('[DevDB] Migrated old friendships in listSentFriendRequests');
+  }
+
   // Get friend requests where user is the sender (aUserId) and status is pending
   const sentRequests = db.friendships.filter(
-    f => f.aUserId === userId && f.status === 'pending'
+    f => f.aUserId === userId && (f as any).status === 'pending'
   );
 
   // Get the user info for each recipient
