@@ -338,7 +338,7 @@ interface FriendsStore {
   loading: boolean;
 
   loadFriends: () => Promise<void>;
-  addFriend: (email: string) => Promise<void>;
+  addFriend: (email: string) => Promise<any>;
   setOnlineStatus: (userId: string, online: boolean) => void;
   openDM: (friendId: string) => void;
   closeDM: (friendId: string) => void;
