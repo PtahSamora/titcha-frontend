@@ -13,11 +13,14 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        selectedRole: { label: 'Selected Role', type: 'text' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Please provide email and password');
         }
+
+        const selectedRole = (credentials as any).selectedRole;
 
         // Try Prisma database first (if DATABASE_URL is configured)
         let prismaUserFound = false;
@@ -47,6 +50,17 @@ export const authOptions: NextAuthOptions = {
               }
 
               console.log('[Auth] Authentication successful via Prisma');
+
+              // Validate role if selectedRole was provided
+              if (selectedRole) {
+                const normalizedUserRole = user.role.toLowerCase();
+                const normalizedSelectedRole = selectedRole.toLowerCase();
+
+                if (normalizedUserRole !== normalizedSelectedRole) {
+                  throw new Error(`You selected ${selectedRole} but your account is registered as ${user.role}. Please select the correct role.`);
+                }
+              }
+
               return {
                 id: user.id,
                 email: user.email || '',
@@ -97,6 +111,17 @@ export const authOptions: NextAuthOptions = {
             }
 
             console.log('[Auth] Authentication successful via devdb');
+
+            // Validate role if selectedRole was provided
+            if (selectedRole) {
+              const normalizedUserRole = devUser.role.toLowerCase();
+              const normalizedSelectedRole = selectedRole.toLowerCase();
+
+              if (normalizedUserRole !== normalizedSelectedRole) {
+                throw new Error(`You selected ${selectedRole} but your account is registered as ${devUser.role}. Please select the correct role.`);
+              }
+            }
+
             return {
               id: devUser.id,
               email: devUser.email,

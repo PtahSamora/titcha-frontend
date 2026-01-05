@@ -3,19 +3,33 @@
 import { useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { LogIn, Mail, Lock, AlertCircle, Loader2, User, School, Check } from 'lucide-react';
 import Link from 'next/link';
 import ButtonGradient from '@/components/ui/ButtonGradient';
 import PasswordField from '@/components/forms/PasswordField';
 
+const roles = [
+  { id: 'student', label: 'Student', icon: User, description: 'Individual learner' },
+  { id: 'parent', label: 'Parent', icon: User, description: 'Monitor child progress' },
+  { id: 'teacher', label: 'Teacher', icon: School, description: 'Manage classes' },
+  { id: 'school', label: 'School Admin', icon: School, description: 'School-wide management' },
+];
+
 export default function LoginPage() {
   const { status } = useSession();
+  const [step, setStep] = useState(1);
+  const [selectedRole, setSelectedRole] = useState('student');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleRoleSelect = (roleId: string) => {
+    setSelectedRole(roleId);
+    setStep(2);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +41,7 @@ export default function LoginPage() {
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
+        selectedRole: selectedRole,
         redirect: false,
       });
 
@@ -77,7 +92,7 @@ export default function LoginPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="w-full max-w-2xl"
       >
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-6">
@@ -89,15 +104,67 @@ export default function LoginPage() {
           <p className="text-gray-600">Sign in to continue your learning journey</p>
         </div>
 
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 1 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                {step > 1 ? <Check className="w-5 h-5" /> : '1'}
+              </div>
+              <span className="ml-2 text-sm font-medium text-gray-700">Select Role</span>
+            </div>
+            <div className={`w-16 h-0.5 ${step >= 2 ? 'bg-purple-600' : 'bg-gray-200'}`} />
+            <div className="flex items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${step >= 2 ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                2
+              </div>
+              <span className="ml-2 text-sm font-medium text-gray-700">Sign In</span>
+            </div>
+          </div>
+        </div>
+
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8">
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
+          {step === 1 && (
+            <div>
+              <h3 className="text-xl font-bold text-gray-900 mb-6 text-center">I am a...</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                {roles.map((role) => (
+                  <motion.button
+                    key={role.id}
+                    whileHover={{ scale: 1.02 }}
+                    onClick={() => handleRoleSelect(role.id)}
+                    className={`p-6 border-2 rounded-xl text-left transition-all ${
+                      selectedRole === role.id
+                        ? 'border-purple-600 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300'
+                    }`}
+                  >
+                    <role.icon className="w-8 h-8 text-purple-600 mb-3" />
+                    <h4 className="font-bold text-gray-900 mb-1">{role.label}</h4>
+                    <p className="text-sm text-gray-600">{role.description}</p>
+                  </motion.button>
+                ))}
+              </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {step === 2 && (
+            <div>
+              <button
+                onClick={() => setStep(1)}
+                className="mb-6 text-purple-600 hover:text-purple-700 text-sm font-medium"
+              >
+                ← Change Role
+              </button>
+
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -205,6 +272,8 @@ export default function LoginPage() {
               <span className="text-sm font-medium">GitHub</span>
             </button>
           </div>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
