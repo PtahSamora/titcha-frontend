@@ -189,6 +189,7 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: true, // Enable debug mode to see detailed logs
+  trustHost: true, // Trust the host header for Vercel deployments
 };
 
 // Role-based redirect helper
