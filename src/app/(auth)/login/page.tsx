@@ -46,7 +46,9 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        const errorMessage = result.error || 'Authentication failed. Please try again.';
+        console.error('[Login] Sign in error:', errorMessage);
+        setError(errorMessage);
         setLoading(false);
       } else if (result?.ok) {
         console.log('[Login] Sign in successful, redirecting to portal');
@@ -58,10 +60,15 @@ export default function LoginPage() {
 
         // Use full page reload to ensure cookie is sent with navigation request
         window.location.href = '/portal';
+      } else {
+        // Handle case where result exists but is neither ok nor error
+        console.error('[Login] Unexpected result:', result);
+        setError('Authentication failed. Please check your credentials and try again.');
+        setLoading(false);
       }
     } catch (error) {
       console.error('[Login] Sign in error:', error);
-      setError('An unexpected error occurred');
+      setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
   };

@@ -143,10 +143,21 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async redirect({ url, baseUrl }) {
+      console.log('[Redirect Callback] URL:', url, 'BaseURL:', baseUrl);
+      // Handle undefined or null values
+      if (!url) return baseUrl || '/'
+      if (!baseUrl) baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+
       // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`
+
       // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
+      try {
+        if (new URL(url).origin === baseUrl) return url
+      } catch (e) {
+        console.error('[Redirect Callback] Invalid URL:', e);
+      }
+
       return baseUrl
     },
     async jwt({ token, user, trigger }) {
