@@ -181,7 +181,7 @@ export const authOptions: NextAuthOptions = {
         : 'next-auth.session-token',
       options: {
         httpOnly: true,
-        sameSite: 'lax', // Changed back to 'lax' - 'none' was causing 401 errors
+        sameSite: 'none', // 'none' required for Vercel production to handle cross-origin auth
         path: '/',
         secure: process.env.NODE_ENV === 'production',
       },
