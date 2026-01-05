@@ -181,7 +181,7 @@ export const authOptions: NextAuthOptions = {
         : 'next-auth.session-token',
       options: {
         httpOnly: true,
-        sameSite: 'none', // 'none' required for Vercel production to handle cross-origin auth
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
       },
@@ -189,7 +189,6 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   debug: true, // Enable debug mode to see detailed logs
-  useSecureCookies: process.env.NODE_ENV === 'production',
 };
 
 // Role-based redirect helper
