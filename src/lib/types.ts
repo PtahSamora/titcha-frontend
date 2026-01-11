@@ -164,6 +164,33 @@ export interface ContinueActivity {
   lastAccessed: string;
 }
 
+export interface GeneratedQuestion {
+  id: string;
+  studentUserId: string;
+  subject: string;
+  topic: string;
+  type: 'practice' | 'quiz';
+  questionText: string;
+  questionHash: string; // MD5 hash for deduplication
+  answer?: string;
+  hint?: string;
+  options?: string[]; // For multiple choice
+  generatedAt: string;
+}
+
+export interface QuizResult {
+  id: string;
+  studentUserId: string;
+  subject: string;
+  topics: string[];
+  totalScore: number;
+  maxScore: number;
+  percentage: number;
+  elapsedTime: number;
+  completedAt: string;
+  questions: string[]; // Question IDs
+}
+
 export interface GroupChat {
   id: string;
   name: string;
@@ -205,6 +232,8 @@ export interface Database {
   continueActivities: ContinueActivity[];
   groupChats: GroupChat[];
   groupMessages: GroupMessage[];
+  generatedQuestions: GeneratedQuestion[];
+  quizResults: QuizResult[];
 }
 
 // Safe user type without password hash

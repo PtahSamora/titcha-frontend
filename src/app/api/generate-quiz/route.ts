@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
+import { requireUser } from '@/lib/auth-guards';
+import { getPreviousQuestions, saveGeneratedQuestion, hashQuestion } from '@/lib/devdb';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,8 +19,10 @@ interface QuizQuestion {
   correct: string;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // Authenticate user
+    const user = await requireUser(req);
     const { subject, topics, questionsPerTopic = 7 }: GenerateQuizRequest = await req.json();
 
     if (!subject || !topics || topics.length === 0) {
@@ -28,11 +32,29 @@ export async function POST(req: Request) {
       );
     }
 
+    // Get previous questions for this user, subject, and topics
+    const previousQuestions = await getPreviousQuestions(user.userId, subject, topics);
+    console.log(`[Generate Quiz] Found ${previousQuestions.length} previous questions for user ${user.userId}`);
+
+
+    // Build exclusion list for AI
+    const exclusionSection = previousQuestions.length > 0
+      ? `\n\nPREVIOUSLY GENERATED QUESTIONS (DO NOT REPEAT):
+The student has already seen these questions. Generate COMPLETELY DIFFERENT questions:
+${previousQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+CRITICAL:
+- Do NOT generate questions similar to the above
+- Use DIFFERENT numbers, variables, scenarios, and concepts
+- Vary the problem types and approaches
+- Ensure questions test the same topics but with fresh examples`
+      : '';
+
     const systemPrompt = `
 You are an expert ${subject} teacher creating a comprehensive quiz.
 
 TASK:
-Generate a quiz with ${questionsPerTopic} questions for EACH of the following topics: ${topics.join(', ')}
+Generate a quiz with ${questionsPerTopic} UNIQUE questions for EACH of the following topics: ${topics.join(', ')}${exclusionSection}
 
 QUESTION DISTRIBUTION:
 - 60% multiple-choice questions (4 options, exactly one correct)
@@ -45,6 +67,7 @@ REQUIREMENTS:
 4. Open-ended questions should require reasoning or problem-solving
 5. Questions should vary in difficulty (easy, medium, hard)
 6. No hints or explanations in questions
+7. ${previousQuestions.length > 0 ? 'MUST be completely different from previously generated questions listed above' : 'Ensure variety in question types'}
 
 RESPONSE FORMAT:
 Return a JSON object with a "questions" array. Each question must have:
@@ -123,6 +146,25 @@ IMPORTANT: Return ONLY valid JSON. No additional text or explanation.
     });
 
     console.log('[Generate Quiz] Successfully generated', validQuestions.length, 'questions');
+
+    // Save generated questions to history
+    const savedQuestions = await Promise.all(
+      validQuestions.map(async (question) => {
+        const questionHash = hashQuestion(question.question);
+        return await saveGeneratedQuestion({
+          studentUserId: user.userId,
+          subject,
+          topic: question.topic,
+          type: 'quiz',
+          questionText: question.question,
+          questionHash,
+          answer: question.correct,
+          options: question.options,
+        });
+      })
+    );
+
+    console.log('[Generate Quiz] Saved', savedQuestions.length, 'questions to history');
 
     return NextResponse.json({
       questions: validQuestions,

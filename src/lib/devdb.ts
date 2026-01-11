@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { Database } from './types';
+import crypto from 'crypto';
+import type { Database, GeneratedQuestion, QuizResult } from './types';
 
 const DB_PATH = join(process.cwd(), 'dev_db', 'dev_db.json');
 const SEED_PATH = join(process.cwd(), 'dev_db', 'seed.json');
@@ -61,6 +62,8 @@ export async function ensureDB(): Promise<void> {
       continueActivities: [],
       groupChats: [],
       groupMessages: [],
+      generatedQuestions: [],
+      quizResults: [],
     };
 
     await fs.mkdir(join(process.cwd(), 'dev_db'), { recursive: true });
@@ -75,9 +78,15 @@ export async function readDB(): Promise<Database> {
   const content = await fs.readFile(DB_PATH, 'utf-8');
   const db = JSON.parse(content) as Database;
 
-  // Ensure roomControls array exists (migration for existing databases)
+  // Ensure arrays exist (migration for existing databases)
   if (!db.roomControls) {
     db.roomControls = [];
+  }
+  if (!db.generatedQuestions) {
+    db.generatedQuestions = [];
+  }
+  if (!db.quizResults) {
+    db.quizResults = [];
   }
 
   return db;
@@ -731,4 +740,131 @@ export async function setRoomControl(roomId: string, controllerUserId: string | 
 
   await writeDB(db);
   return control;
+}
+
+// Question History Functions
+
+/**
+ * Generate a hash for a question to detect duplicates
+ * Normalizes the question text to catch similar questions
+ */
+export function hashQuestion(questionText: string): string {
+  // Normalize: lowercase, remove extra spaces, remove punctuation
+  const normalized = questionText
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '') // Remove punctuation
+    .replace(/\s+/g, ' ')    // Normalize spaces
+    .trim();
+
+  return crypto.createHash('md5').update(normalized).digest('hex');
+}
+
+/**
+ * Save a generated question to history
+ */
+export async function saveGeneratedQuestion(question: Omit<GeneratedQuestion, 'id' | 'generatedAt'>): Promise<GeneratedQuestion> {
+  const db = await readDB();
+
+  const newQuestion: GeneratedQuestion = {
+    ...question,
+    id: `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    generatedAt: new Date().toISOString(),
+  };
+
+  db.generatedQuestions.push(newQuestion);
+  await writeDB(db);
+
+  return newQuestion;
+}
+
+/**
+ * Get question history for a student by subject and topic
+ */
+export async function getQuestionHistory(
+  studentUserId: string,
+  subject: string,
+  topic: string,
+  type?: 'practice' | 'quiz'
+): Promise<GeneratedQuestion[]> {
+  const db = await readDB();
+
+  return db.generatedQuestions.filter(q =>
+    q.studentUserId === studentUserId &&
+    q.subject === subject &&
+    q.topic === topic &&
+    (type ? q.type === type : true)
+  );
+}
+
+/**
+ * Check if a question (by hash) has been generated before for this student
+ */
+export async function isQuestionDuplicate(
+  studentUserId: string,
+  subject: string,
+  topic: string,
+  questionHash: string
+): Promise<boolean> {
+  const db = await readDB();
+
+  return db.generatedQuestions.some(q =>
+    q.studentUserId === studentUserId &&
+    q.subject === subject &&
+    q.topic === topic &&
+    q.questionHash === questionHash
+  );
+}
+
+/**
+ * Get all question texts for a student to pass to AI for exclusion
+ */
+export async function getPreviousQuestions(
+  studentUserId: string,
+  subject: string,
+  topics: string[]
+): Promise<string[]> {
+  const db = await readDB();
+
+  return db.generatedQuestions
+    .filter(q =>
+      q.studentUserId === studentUserId &&
+      q.subject === subject &&
+      topics.includes(q.topic)
+    )
+    .map(q => q.questionText);
+}
+
+/**
+ * Save quiz results
+ */
+export async function saveQuizResult(result: Omit<QuizResult, 'id' | 'completedAt'>): Promise<QuizResult> {
+  const db = await readDB();
+
+  const newResult: QuizResult = {
+    ...result,
+    id: `qr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    completedAt: new Date().toISOString(),
+  };
+
+  db.quizResults.push(newResult);
+  await writeDB(db);
+
+  return newResult;
+}
+
+/**
+ * Get quiz history for a student
+ */
+export async function getQuizHistory(
+  studentUserId: string,
+  subject?: string
+): Promise<QuizResult[]> {
+  const db = await readDB();
+
+  return db.quizResults
+    .filter(qr =>
+      qr.studentUserId === studentUserId &&
+      (subject ? qr.subject === subject : true)
+    )
+    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime());
 }

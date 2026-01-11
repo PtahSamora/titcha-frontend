@@ -1,5 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
+import { requireUser } from '@/lib/auth-guards';
+import { getPreviousQuestions, saveGeneratedQuestion, hashQuestion } from '@/lib/devdb';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,8 +17,10 @@ interface PracticeProblem {
   answer: string;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // Authenticate user
+    const user = await requireUser(req);
     const { subject, topic, numProblems }: GeneratePracticeRequest = await req.json();
 
     if (!subject || !topic || !numProblems) {
@@ -26,22 +30,41 @@ export async function POST(req: Request) {
       );
     }
 
+    // Get previous questions for this user, subject, and topic
+    const previousQuestions = await getPreviousQuestions(user.userId, subject, [topic]);
+    console.log(`[Generate Practice] Found ${previousQuestions.length} previous questions for user ${user.userId}`);
+
+
+    // Build exclusion list for AI
+    const exclusionSection = previousQuestions.length > 0
+      ? `\n\nPREVIOUSLY GENERATED QUESTIONS (DO NOT REPEAT):
+The student has already seen these questions. Generate COMPLETELY DIFFERENT questions:
+${previousQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+
+CRITICAL:
+- Do NOT generate questions similar to the above
+- Use DIFFERENT numbers, variables, scenarios, and concepts
+- Vary the problem types and approaches
+- Ensure questions test the same topic but with fresh examples`
+      : '';
+
     const systemPrompt = `
 You are Titcha, an AI tutor generating practice problems for students.
 
 CURRENT CONTEXT:
 - Subject: ${subject}
 - Topic: ${topic}
-- Number of problems: ${numProblems}
+- Number of problems: ${numProblems}${exclusionSection}
 
 TASK:
-Generate ${numProblems} practice problems for the topic "${topic}" in ${subject}.
+Generate ${numProblems} UNIQUE practice problems for the topic "${topic}" in ${subject}.
 
 REQUIREMENTS:
 1. Each problem should test understanding of ${topic}
 2. Problems should range from easy to medium difficulty
 3. Include a helpful hint that guides without giving away the answer
 4. Provide the correct answer
+5. ${previousQuestions.length > 0 ? 'MUST be completely different from previously generated questions listed above' : 'Ensure variety in problem types'}
 
 RESPONSE FORMAT:
 Return a JSON array of exactly ${numProblems} problems. Each problem must have:
@@ -117,6 +140,25 @@ IMPORTANT:
     }
 
     console.log('[Generate Practice] Successfully generated', validProblems.length, 'problems');
+
+    // Save generated questions to history
+    const savedQuestions = await Promise.all(
+      validProblems.map(async (problem) => {
+        const questionHash = hashQuestion(problem.question);
+        return await saveGeneratedQuestion({
+          studentUserId: user.userId,
+          subject,
+          topic,
+          type: 'practice',
+          questionText: problem.question,
+          questionHash,
+          answer: problem.answer,
+          hint: problem.hint,
+        });
+      })
+    );
+
+    console.log('[Generate Practice] Saved', savedQuestions.length, 'questions to history');
 
     return NextResponse.json({
       problems: validProblems,
