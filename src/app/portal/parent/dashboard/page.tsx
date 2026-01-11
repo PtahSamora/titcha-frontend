@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
-import { Bot, Calendar, TrendingUp, Users, UserCircle, Plus, Home, LogOut } from 'lucide-react';
+import { Bot, Calendar, TrendingUp, Users, UserCircle, Plus, Home, LogOut, Upload, FileText, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import RoleBadge from '@/components/ui/RoleBadge';
@@ -174,6 +174,14 @@ export default function ParentDashboard() {
               >
                 <UserCircle className="h-5 w-5" />
                 <span className="hidden sm:inline">My Kids</span>
+              </button>
+              <button
+                onClick={() => router.push('/portal/parent/resources')}
+                className="text-green-600 hover:text-green-700 font-medium flex items-center gap-2 hover:bg-green-50 px-3 py-2 rounded-lg transition-colors"
+                title="Curriculum Resources"
+              >
+                <FileText className="h-5 w-5" />
+                <span className="hidden sm:inline">Resources</span>
               </button>
               <button
                 onClick={() => window.location.href = 'https://titcha-frontend.vercel.app/'}
