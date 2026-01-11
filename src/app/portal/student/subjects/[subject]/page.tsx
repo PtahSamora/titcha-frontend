@@ -6,10 +6,28 @@ import { motion } from 'framer-motion';
 import { Trash2, Clock } from 'lucide-react';
 import { useActiveLessons, formatTimeAgo, clearAllLessons } from '@/hooks/useActiveLessons';
 
-const subjectData: Record<string, { name: string; icon: string; color: string }> = {
-  math: { name: 'Mathematics', icon: '📐', color: '#9333EA' },
-  science: { name: 'Science', icon: '🔬', color: '#3B82F6' },
-  english: { name: 'English', icon: '📚', color: '#10B981' },
+const subjectData: Record<string, { name: string; icon: string; color: string; recentTopics: string[]; placeholder: string }> = {
+  math: {
+    name: 'Mathematics',
+    icon: '📐',
+    color: '#9333EA',
+    recentTopics: ['Pythagorean theorem', 'Linear equations', 'Trigonometry basics', 'Calculus intro'],
+    placeholder: 'e.g., Quadratic equations, Fractions, Geometry...'
+  },
+  science: {
+    name: 'Science',
+    icon: '🔬',
+    color: '#3B82F6',
+    recentTopics: ['Photosynthesis', 'States of matter', 'Chemical reactions', 'Cell structure'],
+    placeholder: 'e.g., Photosynthesis, Chemical reactions, Physics...'
+  },
+  english: {
+    name: 'English',
+    icon: '📚',
+    color: '#10B981',
+    recentTopics: ['Shakespeare sonnets', 'Essay writing', 'Grammar rules', 'Poetry analysis'],
+    placeholder: 'e.g., Shakespeare, Essay writing, Grammar...'
+  },
 };
 
 export default function SubjectPage() {
@@ -125,7 +143,7 @@ export default function SubjectPage() {
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleStartLesson()}
-              placeholder="e.g., Quadratic equations, Photosynthesis, Shakespeare..."
+              placeholder={subject.placeholder}
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
             />
             <button
@@ -228,22 +246,20 @@ export default function SubjectPage() {
           transition={{ delay: 0.4 }}
           className="mt-8 bg-white rounded-2xl shadow-lg p-6"
         >
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Topics</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Popular Topics in {subject.name}</h2>
           <div className="grid sm:grid-cols-2 gap-3">
-            {['Pythagorean theorem', 'Linear equations', 'Trigonometry basics', 'Calculus intro'].map(
-              (topic, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setTopicInput(topic);
-                    setTimeout(() => handleStartLesson(), 100);
-                  }}
-                  className="p-3 text-left rounded-lg border border-gray-200 hover:border-primary-500 hover:bg-primary-50 transition-colors text-gray-700 text-sm"
-                >
-                  {topic}
-                </button>
-              )
-            )}
+            {subject.recentTopics.map((topic, idx) => (
+              <button
+                key={idx}
+                onClick={() => {
+                  setTopicInput(topic);
+                  setTimeout(() => handleStartLesson(), 100);
+                }}
+                className="p-3 text-left rounded-lg border border-gray-200 hover:border-primary-500 hover:bg-primary-50 transition-colors text-gray-700 text-sm"
+              >
+                {topic}
+              </button>
+            ))}
           </div>
         </motion.div>
       </div>
