@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { openai } from '@/lib/openai';
 import { requireUser } from '@/lib/auth-guards';
-import { getPreviousQuestions, saveGeneratedQuestion, hashQuestion } from '@/lib/devdb';
+import { getPreviousQuestions, saveGeneratedQuestion, hashQuestion } from '@/lib/questionHistory';
 
 export const dynamic = 'force-dynamic';
 

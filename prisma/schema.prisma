@@ -99,3 +99,46 @@ model VerificationToken {
   @@unique([identifier, token])
   @@map("verification_tokens")
 }
+
+// ============================================================
+// Question History & Quiz Tracking
+// ============================================================
+
+model GeneratedQuestion {
+  id             String   @id @default(cuid())
+  studentUserId  String
+  subject        String
+  topic          String
+  type           QuestionType
+  questionText   String   @db.Text
+  questionHash   String   // MD5 hash for deduplication
+  answer         String?  @db.Text
+  hint           String?  @db.Text
+  options        String[] // For multiple choice questions
+  generatedAt    DateTime @default(now())
+
+  @@index([studentUserId, subject, topic])
+  @@index([questionHash])
+  @@map("generated_questions")
+}
+
+model QuizResult {
+  id            String   @id @default(cuid())
+  studentUserId String
+  subject       String
+  topics        String[]
+  totalScore    Float
+  maxScore      Float
+  percentage    Float
+  elapsedTime   Int      // in seconds
+  completedAt   DateTime @default(now())
+  questionIds   String[] // IDs of questions used
+
+  @@index([studentUserId, subject])
+  @@map("quiz_results")
+}
+
+enum QuestionType {
+  PRACTICE
+  QUIZ
+}
