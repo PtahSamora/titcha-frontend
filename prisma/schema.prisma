@@ -142,3 +142,67 @@ enum QuestionType {
   PRACTICE
   QUIZ
 }
+
+// ============================================================
+// Practice & Quiz Session Persistence
+// ============================================================
+
+model PracticeSession {
+  id            String   @id @default(cuid())
+  studentUserId String
+  subject       String
+  topic         String
+  problems      Json     // Array of problems with questions, hints, answers
+  answers       Json     // Array of user answers
+  feedback      Json     // Array of feedback messages
+  isCorrect     Json     // Array of boolean correctness
+  showHint      Json     // Array of hint visibility
+  completed     Boolean  @default(false)
+  score         Int      @default(0) // Number of correct answers
+  totalProblems Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([studentUserId, subject, topic])
+  @@index([studentUserId, completed])
+  @@map("practice_sessions")
+}
+
+model QuizSession {
+  id            String   @id @default(cuid())
+  studentUserId String
+  subject       String
+  topics        String[]
+  questions     Json     // Array of questions
+  answers       Json     // Array of user answers
+  elapsedTime   Int      @default(0) // in seconds
+  submitted     Boolean  @default(false)
+  graded        Boolean  @default(false)
+  results       Json?    // Grading results with feedback
+  totalScore    Float?
+  maxScore      Float?
+  percentage    Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  completedAt   DateTime?
+
+  @@index([studentUserId, subject])
+  @@index([studentUserId, submitted])
+  @@map("quiz_sessions")
+}
+
+model LessonProgress {
+  id            String   @id @default(cuid())
+  studentUserId String
+  subject       String
+  topic         String
+  completed     Boolean  @default(false)
+  messagesCount Int      @default(0)
+  lastAccessed  DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([studentUserId, subject, topic])
+  @@index([studentUserId, subject])
+  @@map("lesson_progress")
+}
