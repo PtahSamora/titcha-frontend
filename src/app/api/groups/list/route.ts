@@ -1,22 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { listMyGroupChats } from '@/lib/devdb';
+import { requireUser } from '@/lib/auth-guards';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const user = await requireUser(request);
 
-    if (!session || !session.user) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const groups = await listMyGroupChats(session.user.id);
+    // Get all groups where user is a member
+    const groups = await prisma.groupChat.findMany({
+      where: {
+        memberUserIds: {
+          has: user.userId,
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
 
     return NextResponse.json(
       { success: true, data: groups },

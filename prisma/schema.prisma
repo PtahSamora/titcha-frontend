@@ -206,3 +206,37 @@ model LessonProgress {
   @@index([studentUserId, subject])
   @@map("lesson_progress")
 }
+
+// ============================================================
+// Group Chats
+// ============================================================
+
+model GroupChat {
+  id            String   @id @default(cuid())
+  name          String
+  ownerUserId   String
+  memberUserIds String[] // Array of user IDs (includes owner)
+  schoolId      String?  // For same-school enforcement
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  messages      GroupMessage[]
+
+  @@index([ownerUserId])
+  @@index([schoolId])
+  @@map("group_chats")
+}
+
+model GroupMessage {
+  id         String    @id @default(cuid())
+  groupId    String
+  fromUserId String
+  message    String    @db.Text
+  createdAt  DateTime  @default(now())
+
+  group      GroupChat @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+  @@index([fromUserId])
+  @@map("group_messages")
+}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth-guards';
 import { checkRateLimit } from '@/lib/ratelimit';
-import { addGroupMessage, listGroupMessages, isGroupMember } from '@/lib/devdb';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
@@ -12,8 +12,12 @@ export async function GET(
     const { groupId } = await params;
 
     // Check if user is a member of the group
-    const isMember = await isGroupMember(groupId, user.userId);
-    if (!isMember) {
+    const group = await prisma.groupChat.findUnique({
+      where: { id: groupId },
+      select: { memberUserIds: true },
+    });
+
+    if (!group || !group.memberUserIds.includes(user.userId)) {
       return NextResponse.json(
         { success: false, message: 'You are not a member of this group' },
         { status: 403 }
@@ -24,10 +28,18 @@ export async function GET(
     const before = url.searchParams.get('before') || undefined;
     const limit = parseInt(url.searchParams.get('limit') || '50', 10);
 
-    const messages = await listGroupMessages(groupId, limit, before);
+    // Get messages
+    const messages = await prisma.groupMessage.findMany({
+      where: {
+        groupId,
+        ...(before ? { createdAt: { lt: new Date(before) } } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
 
     return NextResponse.json(
-      { success: true, data: messages },
+      { success: true, data: messages.reverse() }, // Reverse to show chronological order
       { status: 200 }
     );
   } catch (error: any) {
@@ -62,8 +74,12 @@ export async function POST(
     }
 
     // Check if user is a member of the group
-    const isMember = await isGroupMember(groupId, user.userId);
-    if (!isMember) {
+    const group = await prisma.groupChat.findUnique({
+      where: { id: groupId },
+      select: { memberUserIds: true },
+    });
+
+    if (!group || !group.memberUserIds.includes(user.userId)) {
       return NextResponse.json(
         { success: false, message: 'You are not a member of this group' },
         { status: 403 }
@@ -87,7 +103,20 @@ export async function POST(
       );
     }
 
-    const newMessage = await addGroupMessage(groupId, user.userId, message.trim());
+    // Create message
+    const newMessage = await prisma.groupMessage.create({
+      data: {
+        groupId,
+        fromUserId: user.userId,
+        message: message.trim(),
+      },
+    });
+
+    // Update group's updatedAt timestamp
+    await prisma.groupChat.update({
+      where: { id: groupId },
+      data: { updatedAt: new Date() },
+    });
 
     return NextResponse.json(
       { success: true, data: newMessage },
